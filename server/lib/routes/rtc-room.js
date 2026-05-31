@@ -107,18 +107,18 @@ module.exports = async function handler(req, res) {
 
     if (action === 'poll') {
       const since = req.body?.since || req.query?.since || '';
-      const state = pruneRoom(await loadRoom(roomId));
-      const roster = Object.values(state.peers || {}).filter((p) => p.id !== member.discordId);
-      const signals = (state.signals || []).filter(
-        (s) => s.to === member.discordId && (!since || s.id > since)
-      );
-      if (state.peers?.[member.discordId]) {
-        await updateRoom(roomId, (st) => {
-          if (st.peers?.[member.discordId]) {
-            st.peers[member.discordId].lastSeen = new Date().toISOString();
-          }
-        });
-      }
+      let roster = [];
+      let signals = [];
+      await updateRoom(roomId, (state) => {
+        state.peers = state.peers || {};
+        if (state.peers[member.discordId]) {
+          state.peers[member.discordId].lastSeen = new Date().toISOString();
+        }
+        roster = Object.values(state.peers).filter((p) => p.id !== member.discordId);
+        signals = (state.signals || []).filter(
+          (s) => s.to === member.discordId && (!since || s.id > since)
+        );
+      });
       return res.status(200).json({ roster, signals, peerId: member.discordId });
     }
 

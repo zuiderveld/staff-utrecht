@@ -22,6 +22,7 @@ function URPCall(options) {
     this._vadTimer = null;
     this._audioCtx = null;
     this._lastRosterKey = '';
+    this._pollFailures = 0;
 }
 
 URPCall.prototype.api = async function (action, body) {
@@ -67,9 +68,10 @@ URPCall.prototype.renderShell = function () {
         self.toggleMute();
     };
     this.container.querySelector('#urpBtnLeave').onclick = function () {
-        self.stop();
-        if (typeof disconnectFromChannel === 'function' && connectedChannelId) {
+        if (typeof disconnectFromChannel === 'function') {
             disconnectFromChannel();
+        } else {
+            self.stop();
         }
     };
 };
@@ -353,7 +355,7 @@ URPCall.prototype.createPeerConnection = function (remoteId) {
         }
     };
 
-    const conn = { pc: pc, audio: audio, iceQueue: [], makingOffer: false };
+    const conn = { pc: pc, audio: audio, iceQueue: [], makingOffer: false, missedPolls: 0 };
     this.connections.set(remoteId, conn);
 
     if (this.shouldInitiateOffer(remoteId)) {
@@ -406,9 +408,13 @@ URPCall.prototype.syncRoster = async function (roster) {
     roster.forEach(function (p) {
         if (p.id === self.peerId) return;
         self.createPeerConnection(p.id);
+        const c = self.connections.get(p.id);
+        if (c) c.missedPolls = 0;
     });
     self.connections.forEach(function (_conn, id) {
         if (!ids.has(id)) {
+            _conn.missedPolls = (_conn.missedPolls || 0) + 1;
+            if (_conn.missedPolls < 6) return;
             _conn.pc.close();
             if (_conn.audio && _conn.audio.parentNode) _conn.audio.parentNode.removeChild(_conn.audio);
             self.connections.delete(id);
@@ -432,15 +438,28 @@ URPCall.prototype.poll = async function () {
     if (!this.active) return;
     try {
         const data = await this.api('poll');
+        this._pollFailures = 0;
         for (const sig of data.signals || []) {
             if (sig.id > this.lastSignalId) this.lastSignalId = sig.id;
             await this.handleSignal(sig);
         }
         await this.syncRoster(data.roster || []);
         const n = (data.roster || []).length;
-        this.setStatus(n ? 'Verbonden met ' + n + ' andere(n) in URP Call' : 'Wachten op anderen in de kamer…');
+        const anyConnected = Array.from(this.connections.values()).some(function (c) {
+            return c.pc.connectionState === 'connected';
+        });
+        if (anyConnected) {
+            this.setStatus('Audio verbonden — je kunt praten');
+        } else {
+            this.setStatus(
+                n ? 'Verbonden met ' + n + ' andere(n) — audio opzetten…' : 'Wachten op anderen in de kamer…'
+            );
+        }
     } catch (e) {
-        this.setStatus(e.message);
+        this._pollFailures += 1;
+        if (this._pollFailures >= 4) {
+            this.setStatus('Verbinding even weg — opnieuw proberen… (' + (e.message || '') + ')');
+        }
     }
 };
 
@@ -489,7 +508,7 @@ URPCall.prototype.start = async function () {
     }, 450);
     this.heartbeatTimer = setInterval(function () {
         self.api('heartbeat').catch(function () {});
-    }, 15000);
+    }, 8000);
     await this.poll();
 };
 
@@ -525,15 +544,19 @@ URPCall.prototype.stop = async function () {
 const activeCalls = {};
 
 function startURPCall(containerId, roomId) {
-    if (activeCalls[containerId]) {
-        activeCalls[containerId].stop();
-    }
     const el = document.getElementById(containerId);
     if (!el) return null;
+    const existing = activeCalls[containerId];
+    if (existing && existing.active && existing.roomId === roomId) {
+        return existing;
+    }
+    if (existing) {
+        existing.stop();
+    }
     const call = new URPCall({ roomId: roomId, container: el });
     activeCalls[containerId] = call;
     call.start().catch(function (err) {
-        el.innerHTML = '<p class="staff-empty">' + escapeHtml(err.message) + '</p>';
+        if (el) el.innerHTML = '<p class="staff-empty">' + escapeHtml(err.message) + '</p>';
     });
     return call;
 }

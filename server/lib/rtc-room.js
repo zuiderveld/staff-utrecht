@@ -2,6 +2,7 @@ const BLOB_PREFIX = 'urp-rtc-room-';
 const MAX_SIGNALS = 200;
 const SIGNAL_TTL_MS = 120_000;
 const PEER_TTL_MS = 30 * 60_000;
+const PEER_IDLE_MS = 120_000;
 
 function blobPath(roomId) {
   return BLOB_PREFIX + roomId.replace(/[^a-zA-Z0-9_-]/g, '') + '.json';
@@ -38,7 +39,10 @@ function pruneRoom(state) {
   const now = Date.now();
   const peers = state.peers || {};
   Object.keys(peers).forEach((id) => {
-    if (now - new Date(peers[id].lastSeen || peers[id].joinedAt).getTime() > PEER_TTL_MS) {
+    const last = new Date(peers[id].lastSeen || peers[id].joinedAt).getTime();
+    if (now - last > PEER_TTL_MS) {
+      delete peers[id];
+    } else if (peers[id].lastSeen && now - last > PEER_IDLE_MS) {
       delete peers[id];
     }
   });
@@ -53,11 +57,19 @@ function pruneRoom(state) {
 }
 
 async function updateRoom(roomId, mutator) {
-  const state = pruneRoom(await loadRoom(roomId));
-  mutator(state);
-  state.updatedAt = new Date().toISOString();
-  await saveRoom(roomId, state);
-  return state;
+  let lastErr;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const state = pruneRoom(await loadRoom(roomId));
+    mutator(state);
+    state.updatedAt = new Date().toISOString();
+    try {
+      await saveRoom(roomId, state);
+      return state;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Kamer opslaan mislukt');
 }
 
 module.exports = { loadRoom, updateRoom, pruneRoom };
