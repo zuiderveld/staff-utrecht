@@ -1,0 +1,113 @@
+{
+  "titel": "Staffrangen & Functies",
+  "secties": [
+    {
+      "beschrijving": "Toegang tot tickets & supportkanalen",
+      "rollen": ["1502448659369951262"]
+    },
+    {
+      "beschrijving": "Standaard staffperms ingame, noclippen, tpen, reviven",
+      "rollen": [
+        "1502448657553821798",
+        "1502448656698179666",
+        "1502448655846867085",
+        "1502448655020462300",
+        "1502448654089326642",
+        "1502448653200265298",
+        "1502448652378046485",
+        "1502448651585454120"
+      ]
+    },
+    {
+      "beschrijving": "Toegang tot taken functie",
+      "rollen": ["1502448650666639431", "1502448649811001465"]
+    },
+    {
+      "beschrijving": "Txadmin noclip, bring, serverlog inzage, taken functie & unbanmenu access + Hogerop Team rollen",
+      "rollen": [
+        "1502448647961444392",
+        "1502448646992695306",
+        "1502448646099308604",
+        "1502448644786225233"
+      ]
+    },
+    {
+      "beschrijving": "Eigen staffzaak",
+      "rollen": ["1502448643901489213"]
+    },
+    {
+      "beschrijving": "Server Bestuur rollen + toegang tot extra kanalen met meer inzage",
+      "rollen": [
+        "1502448642210922566",
+        "1502448641137180874",
+        "1502448640218763404",
+        "1502448638427926568",
+        "1502448637391933470",
+        "1502448636523581450"
+      ]
+    },
+    {
+      "beschrijving": "Beheer Team rollen + Electron toegang + toegang tot extra kanalen met meer inzage",
+      "rollen": [
+        "1502448634967621743",
+        "1502448634149601450",
+        "1502448633206018168",
+        "1502448630328725545",
+        "1502448629254983732",
+        "1502448624368619652",
+        "1502448625366732971",
+        "1502448623252930601"
+      ]
+    }
+  ],
+  "extra": {
+    "titel": "Extra functies/rollen uitleg",
+    "items": [
+      {
+        "rollen": ["1502448679951274084"],
+        "uitleg": "Het organiseren en coordineren van evenementen.",
+        "vanaf": ["1502448657553821798"]
+      },
+      {
+        "rollen": ["1502448677200072785"],
+        "uitleg": "Het kunnen behandelen en geven van refunds ingame.",
+        "vanaf": ["1502448644786225233"]
+      },
+      {
+        "rollen": ["1502448690584092722"],
+        "uitleg": "Het kunnen refunden van donatieitems. Enkel mogelijk op vertrouwen."
+      },
+      {
+        "rollen": ["1502448673710280845"],
+        "uitleg": "Verantwoordelijk voor de onderwereld en die coordinatie hiervan."
+      },
+      {
+        "rollen": ["1502448674536689765"],
+        "uitleg": "Verantwoordelijk voor alle hulpdiensten en de coordinatie hiervan."
+      },
+      {
+        "rollen": ["1502448672913490030"],
+        "uitleg": "Het kunnen uitdelen van warns, demotes en ontslagen.",
+        "vanaf": ["1502448642210922566"]
+      },
+      {
+        "rollen": ["1502448671957061702"],
+        "uitleg": "Server coordinatie en het aansturen van staffsancties.",
+        "vanaf": ["1502448640218763404"]
+      },
+      {
+        "rollen": ["1502448686259765448"],
+        "uitleg": "Het behandelen van sollicitatie en overstap tickets.",
+        "vanaf": ["1502448651585454120"]
+      },
+      {
+        "rollen": ["1502448628747210935"],
+        "uitleg": "Alle perms in de server."
+      },
+      {
+        "rollen": ["1502448678818807819", "1502448675379740722"],
+        "uitleg": "Het behandelen / toezichthouden op overstappen en pushes. Enkel mogelijk met toestemming van Beheer Team."
+      }
+    ]
+  }
+}

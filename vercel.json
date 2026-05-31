@@ -1,5 +1,15 @@
 {
   "installCommand": "npm install",
   "buildCommand": null,
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/api/staff-auth", "destination": "/api/router?route=staff-auth" },
+    { "source": "/api/discord-auth", "destination": "/api/router?route=discord-auth" },
+    { "source": "/api/site-data", "destination": "/api/router?route=site-data" },
+    { "source": "/api/staff-team", "destination": "/api/router?route=staff-team" },
+    { "source": "/api/discord-role-names", "destination": "/api/router?route=discord-role-names" },
+    { "source": "/api/support-queue", "destination": "/api/router?route=support-queue" },
+    { "source": "/api/support-admit", "destination": "/api/router?route=support-admit" },
+    { "source": "/api/rtc-room", "destination": "/api/router?route=rtc-room" }
+  ]
 }
