@@ -1,6 +1,6 @@
 {
   "installCommand": "npm install",
-  "buildCommand": null,
+  "buildCommand": "node scripts/vercel-prep.js",
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/api/staff-auth", "destination": "/api/router?route=staff-auth" },
