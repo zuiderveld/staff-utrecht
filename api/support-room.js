@@ -18,14 +18,12 @@ module.exports = async function handler(req, res) {
     const user = await verifyAccessToken(accessToken);
     const room = process.env.JITSI_ROOM_NAME || 'URP-Staff-Support';
     const password = process.env.JITSI_ROOM_PASSWORD || '';
-    const discordVoiceUrl = process.env.DISCORD_SUPPORT_VOICE_URL || '';
 
     return res.status(200).json({
       jitsiServer: process.env.JITSI_SERVER || 'meet.jit.si',
       room,
       password: password || null,
       displayName: user.username,
-      discordVoiceUrl: discordVoiceUrl || null,
     });
   } catch (err) {
     console.error('support-room:', err);

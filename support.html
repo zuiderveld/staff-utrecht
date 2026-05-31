@@ -14,49 +14,38 @@
 <main class="staff-container staff-support-page">
     <div class="staff-hero">
         <h2>Staff <span>Support</span></h2>
-        <p>Bel met staff — Discord of direct in je browser</p>
+        <p>Bel direct met staff — alles in je browser, geen Discord nodig</p>
     </div>
 
-    <div class="staff-support-tabs">
-        <button type="button" class="staff-support-tab active" data-mode="discord">
-            <i class="fab fa-discord"></i> Discord bellen
-        </button>
-        <button type="button" class="staff-support-tab" data-mode="browser">
-            <i class="fas fa-headset"></i> Bellen op website
-        </button>
-    </div>
-
-    <div id="panelDiscord" class="staff-support-panel active staff-card">
-        <div class="staff-card-title"><i class="fab fa-discord"></i> Discord supportkanaal</div>
+    <div class="staff-card staff-support-main">
+        <div class="staff-card-title"><i class="fas fa-headset"></i> Staff belruimte</div>
         <p class="staff-support-desc">
-            De beste kwaliteit voor staff-overleg: join het vaste <strong>support spraakkanaal</strong> op de URP Discord.
+            Alleen voor ingelogde staff. Iedereen met toegang tot deze pagina komt in
+            <strong>dezelfde ruimte</strong>. Sta microfoon (en eventueel camera) toe als je browser het vraagt.
         </p>
-        <div id="discordActions">
-            <p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden...</p>
+
+        <div id="supportStatus" class="staff-support-status">
+            <i class="fas fa-spinner fa-spin"></i> Belruimte voorbereiden…
         </div>
-        <p class="staff-support-hint">
-            Geen link? Zet <code>DISCORD_SUPPORT_VOICE_URL</code> in Vercel (invite-link of kanaallink).
-        </p>
-    </div>
 
-    <div id="panelBrowser" class="staff-support-panel staff-card">
-        <div class="staff-card-title"><i class="fas fa-video"></i> Staff belruimte (browser)</div>
-        <p class="staff-support-desc">
-            Alleen voor ingelogde staff. Sta microfoon/camera toe als je browser het vraagt.
-        </p>
         <div class="staff-support-toolbar">
-            <button type="button" class="staff-btn staff-btn-primary" id="btnJoinCall">
-                <i class="fas fa-phone"></i> Deelnemen aan gesprek
+            <button type="button" class="staff-btn staff-btn-primary" id="btnJoinCall" disabled>
+                <i class="fas fa-phone"></i> Deelnemen
             </button>
-            <button type="button" class="staff-btn" id="btnLeaveCall" style="display:none">
-                <i class="fas fa-phone-slash"></i> Gesprek verlaten
+            <button type="button" class="staff-btn staff-btn-danger" id="btnLeaveCall" style="display:none">
+                <i class="fas fa-phone-slash"></i> Verlaten
+            </button>
+            <button type="button" class="staff-btn" id="btnMuteHint" style="display:none" disabled title="Gebruik de knoppen in het belscherm">
+                <i class="fas fa-microphone"></i> Mic in belscherm
             </button>
         </div>
+
         <div id="jitsiWrap" class="staff-jitsi-wrap" hidden>
             <iframe id="jitsiFrame" title="Staff belruimte" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
         </div>
+
         <p class="staff-support-hint" id="browserHint">
-            Klik op <strong>Deelnemen</strong> om de belruimte te openen. Deel de link niet buiten staff.
+            Na <strong>Deelnemen</strong> verschijnt het belscherm hieronder. Andere staff opent dezelfde Support-pagina om mee te praten.
         </p>
     </div>
 </main>
@@ -68,33 +57,12 @@
     mountHeader('support');
 
     let supportConfig = null;
+    const statusEl = document.getElementById('supportStatus');
+    const hintEl = document.getElementById('browserHint');
 
-    const tabs = document.querySelectorAll('.staff-support-tab');
-    const panelDiscord = document.getElementById('panelDiscord');
-    const panelBrowser = document.getElementById('panelBrowser');
-
-    tabs.forEach(function (tab) {
-        tab.addEventListener('click', function () {
-            tabs.forEach(function (t) { t.classList.remove('active'); });
-            tab.classList.add('active');
-            const discord = tab.dataset.mode === 'discord';
-            panelDiscord.classList.toggle('active', discord);
-            panelBrowser.classList.toggle('active', !discord);
-        });
-    });
-
-    function renderDiscordPanel() {
-        const el = document.getElementById('discordActions');
-        const url = supportConfig && supportConfig.discordVoiceUrl;
-        if (!url) {
-            el.innerHTML =
-                '<p class="staff-empty">Discord supportlink is nog niet ingesteld door beheer.</p>' +
-                '<p class="staff-support-desc">Vraag beheer om <code>DISCORD_SUPPORT_VOICE_URL</code> in Vercel te zetten (bijv. invite naar jullie support voice).</p>';
-            return;
-        }
-        el.innerHTML =
-            '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" class="staff-support-discord-btn">' +
-            '<i class="fab fa-discord"></i> Join support spraakkanaal</a>';
+    function setStatus(html, type) {
+        statusEl.className = 'staff-support-status' + (type ? ' ' + type : '');
+        statusEl.innerHTML = html;
     }
 
     function buildJitsiUrl(cfg) {
@@ -102,10 +70,12 @@
         const server = (cfg.jitsiServer || 'meet.jit.si').replace(/^https?:\/\//, '');
         let url = 'https://' + server + '/' + room;
         const hash = [
-            'config.prejoinPageEnabled=true',
+            'config.prejoinPageEnabled=false',
             'config.startWithAudioMuted=false',
             'config.startWithVideoMuted=true',
+            'config.disableDeepLinking=true',
             'interfaceConfig.SHOW_JITSI_WATERMARK=false',
+            'interfaceConfig.MOBILE_APP_PROMO=false',
             'userInfo.displayName=' + encodeURIComponent(cfg.displayName || userName()),
         ];
         if (cfg.password) {
@@ -115,39 +85,45 @@
         return url;
     }
 
-    document.getElementById('btnJoinCall').addEventListener('click', function () {
-        if (!supportConfig) {
-            alert('Supportconfig nog niet geladen. Vernieuw de pagina.');
-            return;
-        }
+    function joinCall() {
+        if (!supportConfig) return;
         const wrap = document.getElementById('jitsiWrap');
         const frame = document.getElementById('jitsiFrame');
         frame.src = buildJitsiUrl(supportConfig);
         wrap.hidden = false;
         document.getElementById('btnJoinCall').style.display = 'none';
         document.getElementById('btnLeaveCall').style.display = 'inline-flex';
-        document.getElementById('browserHint').textContent =
-            'Je zit in de staff-belruimte. Andere staff kan op dezelfde knop drukken om mee te doen.';
-    });
+        setStatus('<i class="fas fa-circle" style="color:#22c55e"></i> Verbonden — je hoort anderen zodra zij ook deelnemen.', 'ok');
+        hintEl.textContent =
+            'Je zit in de staff-belruimte op de website. Laat dit tabblad open tijdens het gesprek.';
+    }
 
-    document.getElementById('btnLeaveCall').addEventListener('click', function () {
-        const frame = document.getElementById('jitsiFrame');
-        frame.src = 'about:blank';
+    function leaveCall() {
+        document.getElementById('jitsiFrame').src = 'about:blank';
         document.getElementById('jitsiWrap').hidden = true;
         document.getElementById('btnJoinCall').style.display = 'inline-flex';
         document.getElementById('btnLeaveCall').style.display = 'none';
-        document.getElementById('browserHint').textContent =
-            'Klik op Deelnemen om de belruimte te openen. Deel de link niet buiten staff.';
-    });
+        setStatus('<i class="fas fa-headset"></i> Niet verbonden. Klik op Deelnemen om terug te gaan.', '');
+        hintEl.textContent =
+            'Klik op Deelnemen om het belscherm te openen. Alleen ingelogde staff heeft toegang.';
+    }
+
+    document.getElementById('btnJoinCall').addEventListener('click', joinCall);
+    document.getElementById('btnLeaveCall').addEventListener('click', leaveCall);
 
     fetchSupportRoom()
         .then(function (cfg) {
             supportConfig = cfg;
-            renderDiscordPanel();
+            document.getElementById('btnJoinCall').disabled = false;
+            setStatus(
+                '<i class="fas fa-check-circle" style="color:#22c55e"></i> Klaar — klik <strong>Deelnemen</strong> om te bellen via de website.',
+                'ok'
+            );
+            joinCall();
         })
         .catch(function (e) {
-            document.getElementById('discordActions').innerHTML =
-                '<p class="staff-empty">' + escapeHtml(e.message) + '</p>';
+            setStatus('<i class="fas fa-exclamation-circle"></i> ' + escapeHtml(e.message), 'err');
+            hintEl.textContent = 'Log opnieuw in met Discord (staff-rol vereist).';
         });
 </script>
 </body>
