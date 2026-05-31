@@ -114,11 +114,15 @@ URPCall.prototype.setStatus = function (text) {
 
 URPCall.prototype.toggleMute = function () {
     this.muted = !this.muted;
+    if (typeof URPSounds !== 'undefined') {
+        URPSounds.play(this.muted ? 'mic-muted' : 'mic-unmuted');
+    }
     if (this.localStream) {
         this.localStream.getAudioTracks().forEach(function (t) {
             t.enabled = !this.muted;
         }, this);
     }
+    this.updateParticipants(this._lastRoster || []);
     const btn = this.container.querySelector('#urpBtnMute');
     if (btn) {
         btn.classList.toggle('urp-call-btn-muted', this.muted);
@@ -207,6 +211,7 @@ URPCall.prototype.syncRoster = async function (roster) {
             self.connections.delete(id);
         }
     });
+    self._lastRoster = roster;
     self.updateParticipants(roster);
 };
 
@@ -265,6 +270,9 @@ URPCall.prototype.start = async function () {
 };
 
 URPCall.prototype.stop = async function () {
+    if (typeof URPSounds !== 'undefined') {
+        URPSounds.play('leave-call');
+    }
     this.active = false;
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);

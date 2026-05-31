@@ -17,11 +17,31 @@ module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const accessToken = req.body?.accessToken || req.query?.accessToken;
-  if (!accessToken) return res.status(401).json({ error: 'Log in met Discord' });
-
   try {
     const action = req.body?.action || req.query?.action || 'status';
+
+    /** Openbaar — geen login, alleen wie in wachtkamer zit */
+    if (action === 'public-queue') {
+      const state = await getQueue();
+      const waiting = (state.waiting || []).map(function (e, idx) {
+        return {
+          username: e.username,
+          avatarUrl: e.avatarUrl,
+          channelNaam: e.channelNaam,
+          joinedAt: e.joinedAt,
+          position: idx + 1,
+        };
+      });
+      return res.status(200).json({
+        open: true,
+        count: waiting.length,
+        waiting: waiting,
+        updatedAt: state.updatedAt,
+      });
+    }
+
+    const accessToken = req.body?.accessToken || req.query?.accessToken;
+    if (!accessToken) return res.status(401).json({ error: 'Log in met Discord' });
 
     if (action === 'config') {
       const member = await verifyGuildMember(accessToken);

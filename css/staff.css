@@ -616,6 +616,41 @@ body {
     border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
+.support-public-wait {
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    margin-bottom: 1rem;
+}
+
+.support-open-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #22c55e;
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 8px;
+    background: rgba(34, 197, 94, 0.15);
+    vertical-align: middle;
+}
+
+.support-public-wait .support-queue-item {
+    pointer-events: none;
+}
+
+.support-public-entry {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    margin-bottom: 0.5rem;
+}
+
+.support-public-entry .support-queue-meta {
+    margin-top: 0.2rem;
+}
+
 .staff-dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

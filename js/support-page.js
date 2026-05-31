@@ -4,6 +4,59 @@ function getCallRoomId(channel) {
     return channel?.callRoom || channel?.jitsiRoom || channel?.id || 'URP-Support';
 }
 
+let publicPollTimer = null;
+
+function renderPublicQueueEntry(entry) {
+    const av = entry.avatarUrl
+        ? '<img src="' + escapeHtml(entry.avatarUrl) + '" alt="" class="support-user-avatar">'
+        : '<span class="support-user-avatar support-user-avatar-ph"><i class="fas fa-user"></i></span>';
+    const joined = entry.joinedAt
+        ? new Date(entry.joinedAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+        : '';
+    return (
+        '<div class="support-public-entry">' +
+        av +
+        '<div class="support-user-meta">' +
+        '<strong>#' +
+        escapeHtml(String(entry.position)) +
+        ' ' +
+        escapeHtml(entry.username || 'Speler') +
+        '</strong>' +
+        '<span class="support-queue-meta">' +
+        '<i class="fas fa-headset"></i> ' +
+        escapeHtml(entry.channelNaam || 'Support') +
+        (joined ? ' · <i class="fas fa-clock"></i> ' + joined : '') +
+        '</span></div></div>'
+    );
+}
+
+async function refreshPublicQueue() {
+    const list = document.getElementById('publicQueueList');
+    if (!list) return;
+    try {
+        const res = await fetch(SITE_API + '/api/support-queue?action=public-queue');
+        const d = await res.json();
+        if (!res.ok) {
+            list.innerHTML = '<p class="staff-empty">Wachtkamer tijdelijk niet bereikbaar.</p>';
+            return;
+        }
+        if (!d.waiting || d.waiting.length === 0) {
+            list.innerHTML =
+                '<p class="staff-empty"><i class="fas fa-check-circle"></i> Niemand in de wachtkamer.</p>';
+            return;
+        }
+        list.innerHTML = d.waiting.map(renderPublicQueueEntry).join('');
+    } catch (e) {
+        list.innerHTML = '<p class="staff-empty">Kon wachtkamer niet laden.</p>';
+    }
+}
+
+function startPublicQueuePoll() {
+    refreshPublicQueue();
+    if (publicPollTimer) clearInterval(publicPollTimer);
+    publicPollTimer = setInterval(refreshPublicQueue, 8000);
+}
+
 function renderDiscordUserCard(entry, extraHtml) {
     const av = entry.avatarUrl
         ? '<img src="' + escapeHtml(entry.avatarUrl) + '" alt="" class="support-user-avatar">'
@@ -322,6 +375,10 @@ async function renderStaffPanel() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    startPublicQueuePoll();
+    initSupportPage();
     const btnLeave = document.getElementById('btnLeaveWait');
     if (btnLeave) btnLeave.addEventListener('click', leaveWaitingRoom);
+    const link = document.getElementById('linkStaffPortal');
+    if (link) link.hidden = !isStaff();
 });

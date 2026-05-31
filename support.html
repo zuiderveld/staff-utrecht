@@ -13,6 +13,22 @@
 <div class="staff-bg"></div>
 <div id="siteHeader"></div>
 
+<section id="publicWaitingSection" class="staff-container" style="padding-top:1.5rem;padding-bottom:0">
+    <div class="staff-card support-public-wait">
+        <div class="staff-card-title">
+            <i class="fas fa-eye"></i> Openbare wachtkamer
+            <span class="support-open-badge">Live</span>
+        </div>
+        <p class="staff-support-desc" style="margin-bottom:1rem">
+            <strong>Iedereen</strong> kan zien wie er wacht (ook zonder in te loggen).
+            Om zelf in de rij te staan: log in met Discord.
+        </p>
+        <div id="publicQueueList" class="support-queue-list">
+            <p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden…</p>
+        </div>
+    </div>
+</section>
+
 <div id="supportLogin" class="login-wrap">
     <div class="login-box" style="max-width:440px;margin:4rem auto">
         <img src="/assets/favicon.png" alt="URP" width="80">
@@ -108,11 +124,8 @@
 <footer class="staff-footer">© Utrecht Roleplay</footer>
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/urp-sounds.js"></script>
 <script src="/js/urp-call.js"></script>
 <script src="/js/support-page.js"></script>
-<script>
-    document.getElementById('linkStaffPortal').hidden = !isStaff();
-    initSupportPage();
-</script>
 </body>
 </html>
