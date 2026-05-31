@@ -55,13 +55,13 @@ module.exports = async function handler(req, res) {
       if (!member.isStaff) assertSupportAccess(member);
       await updateRoom(roomId, (state) => {
         state.peers = state.peers || {};
-        state.peers[member.discordId] = {
-          id: member.discordId,
+        state.peers[String(member.discordId)] = {
+          id: String(member.discordId),
           name: member.username,
           avatarUrl: member.avatarUrl,
           discordUsername: member.discordUsername,
           isStaff: member.isStaff,
-          joinedAt: state.peers[member.discordId]?.joinedAt || new Date().toISOString(),
+          joinedAt: state.peers[String(member.discordId)]?.joinedAt || new Date().toISOString(),
           lastSeen: new Date().toISOString(),
         };
       });
@@ -70,15 +70,16 @@ module.exports = async function handler(req, res) {
 
     if (action === 'leave' && req.method === 'POST') {
       await updateRoom(roomId, (state) => {
-        if (state.peers) delete state.peers[member.discordId];
+        if (state.peers) delete state.peers[String(member.discordId)];
       });
       return res.status(200).json({ ok: true });
     }
 
     if (action === 'heartbeat' && req.method === 'POST') {
       await updateRoom(roomId, (state) => {
-        if (state.peers?.[member.discordId]) {
-          state.peers[member.discordId].lastSeen = new Date().toISOString();
+        const pid = String(member.discordId);
+        if (state.peers?.[pid]) {
+          state.peers[pid].lastSeen = new Date().toISOString();
         }
       });
       return res.status(200).json({ ok: true });
@@ -98,8 +99,9 @@ module.exports = async function handler(req, res) {
           data,
           at: new Date().toISOString(),
         });
-        if (state.peers?.[member.discordId]) {
-          state.peers[member.discordId].lastSeen = new Date().toISOString();
+        const pid = String(member.discordId);
+        if (state.peers?.[pid]) {
+          state.peers[pid].lastSeen = new Date().toISOString();
         }
       });
       return res.status(200).json({ ok: true, id: sigId });
@@ -111,10 +113,11 @@ module.exports = async function handler(req, res) {
       let signals = [];
       await updateRoom(roomId, (state) => {
         state.peers = state.peers || {};
-        if (state.peers[member.discordId]) {
-          state.peers[member.discordId].lastSeen = new Date().toISOString();
+        const pid = String(member.discordId);
+        if (state.peers[pid]) {
+          state.peers[pid].lastSeen = new Date().toISOString();
         }
-        roster = Object.values(state.peers).filter((p) => p.id !== member.discordId);
+        roster = Object.values(state.peers).filter((p) => String(p.id) !== pid);
         signals = (state.signals || []).filter(
           (s) => s.to === member.discordId && (!since || s.id > since)
         );

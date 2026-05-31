@@ -79,7 +79,36 @@ function stopPresencePoll() {
 function startPresencePoll() {
     stopPresencePoll();
     refreshChannelPresence();
-    presenceTimer = setInterval(refreshChannelPresence, 3500);
+    presenceTimer = setInterval(refreshChannelPresence, connectedChannelId ? 1500 : 3500);
+}
+
+function mergeMemberEntry(list, entry) {
+    if (!entry || !entry.id) return list;
+    const id = String(entry.id);
+    if (list.some(function (p) { return String(p.id) === id; })) return list;
+    return list.concat([
+        {
+            id: id,
+            name: entry.name || 'Onbekend',
+            avatarUrl: entry.avatarUrl || null,
+            isStaff: !!entry.isStaff,
+        },
+    ]);
+}
+
+function getLiveRosterForChannel(ch) {
+    const roomId = getCallRoomId(ch);
+    if (getURPCallRoomId && getURPCallRoomId('urpCallGuest') === roomId) {
+        return (getURPCallRoster('urpCallGuest') || []).map(function (p) {
+            return {
+                id: String(p.id),
+                name: p.name || 'Onbekend',
+                avatarUrl: p.avatarUrl || null,
+                isStaff: !!p.isStaff,
+            };
+        });
+    }
+    return [];
 }
 
 async function refreshChannelPresence() {
@@ -123,8 +152,32 @@ async function refreshSupportUI() {
     await refreshChannelPresence();
 }
 
+function getMembersInChannel(ch) {
+    let list = (channelPresence[ch.id] || []).map(function (p) {
+        return {
+            id: String(p.id),
+            name: p.name || 'Onbekend',
+            avatarUrl: p.avatarUrl || null,
+            isStaff: !!p.isStaff,
+        };
+    });
+    getLiveRosterForChannel(ch).forEach(function (p) {
+        list = mergeMemberEntry(list, p);
+    });
+    const myId = discordId();
+    if (myId) {
+        list = mergeMemberEntry(list, {
+            id: myId,
+            name: userName(),
+            avatarUrl: avatarUrl(),
+            isStaff: isStaff(),
+        });
+    }
+    return list;
+}
+
 function renderChannelMembers(ch) {
-    const list = channelPresence[ch.id] || [];
+    const list = getMembersInChannel(ch);
     if (!list.length) {
         return (
             '<div class="support-channel-members">' +
@@ -132,11 +185,13 @@ function renderChannelMembers(ch) {
             '<p class="support-channel-members-empty">Nog niemand verbonden</p></div>'
         );
     }
+    const onlyMe =
+        list.length === 1 && list[0].id === discordId() && connectedChannelId === ch.id;
     return (
         '<div class="support-channel-members">' +
-        '<span class="support-channel-members-label">In dit kanaal (' +
-        list.length +
-        ')</span>' +
+        '<span class="support-channel-members-label">' +
+        (onlyMe ? 'Jij bent verbonden (wacht op anderen)' : 'In dit kanaal (' + list.length + ')') +
+        '</span>' +
         '<ul class="support-channel-member-list">' +
         list
             .map(function (p) {
@@ -262,18 +317,31 @@ function connectToChannel(channel) {
             call._audioCtx.resume();
         }
     }
-    setTimeout(refreshChannelPresence, 600);
+    startPresencePoll();
+    setTimeout(refreshChannelPresence, 400);
+    setTimeout(refreshChannelPresence, 1200);
 }
 
 function disconnectFromChannel() {
     connectedChannelId = null;
+    stopPresencePoll();
     stopURPCall('urpCallGuest');
     setCallPanelVisible(false);
     const hint = document.getElementById('guestPickHint');
     if (hint) hint.hidden = false;
     renderChannelPicker(supportConfig?.channels || []);
-    refreshChannelPresence();
+    startPresencePoll();
 }
+
+window.onURPCallRosterChange = function (roomId, roster) {
+    if (!connectedChannelId || !supportConfig) return;
+    const ch = (supportConfig.channels || []).find(function (c) {
+        return getCallRoomId(c) === roomId;
+    });
+    if (!ch) return;
+    updateChannelMemberLists(supportConfig.channels || []);
+    refreshChannelPresence();
+};
 
 document.addEventListener('DOMContentLoaded', function () {
     initSupportPage();

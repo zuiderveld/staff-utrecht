@@ -2,7 +2,7 @@ const BLOB_PREFIX = 'urp-rtc-room-';
 const MAX_SIGNALS = 200;
 const SIGNAL_TTL_MS = 120_000;
 const PEER_TTL_MS = 30 * 60_000;
-const PEER_IDLE_MS = 120_000;
+const PEER_DISPLAY_MS = 5 * 60_000;
 
 function blobPath(roomId) {
   return BLOB_PREFIX + roomId.replace(/[^a-zA-Z0-9_-]/g, '') + '.json';
@@ -35,14 +35,13 @@ async function saveRoom(roomId, data) {
   });
 }
 
-function pruneRoom(state) {
+function pruneRoom(state, maxIdleMs) {
   const now = Date.now();
+  const idleLimit = maxIdleMs || PEER_TTL_MS;
   const peers = state.peers || {};
   Object.keys(peers).forEach((id) => {
     const last = new Date(peers[id].lastSeen || peers[id].joinedAt).getTime();
-    if (now - last > PEER_TTL_MS) {
-      delete peers[id];
-    } else if (peers[id].lastSeen && now - last > PEER_IDLE_MS) {
+    if (now - last > idleLimit) {
       delete peers[id];
     }
   });
@@ -56,11 +55,34 @@ function pruneRoom(state) {
   return state;
 }
 
+function mergePeerMaps(a, b) {
+  const out = { ...(a || {}) };
+  Object.keys(b || {}).forEach((id) => {
+    if (!out[id]) {
+      out[id] = b[id];
+      return;
+    }
+    const tA = new Date(out[id].lastSeen || out[id].joinedAt || 0).getTime();
+    const tB = new Date(b[id].lastSeen || b[id].joinedAt || 0).getTime();
+    if (tB >= tA) out[id] = { ...out[id], ...b[id] };
+  });
+  return out;
+}
+
 async function updateRoom(roomId, mutator) {
   let lastErr;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const state = pruneRoom(await loadRoom(roomId));
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const snapA = await loadRoom(roomId);
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 40 * attempt));
+    const snapB = await loadRoom(roomId);
+    const mergedPeers = mergePeerMaps(snapA.peers, snapB.peers);
+    const state = pruneRoom({
+      peers: mergedPeers,
+      signals: [...(snapB.signals || snapA.signals || [])],
+      updatedAt: snapB.updatedAt || snapA.updatedAt,
+    });
     mutator(state);
+    state.peers = mergePeerMaps(mergedPeers, state.peers);
     state.updatedAt = new Date().toISOString();
     try {
       await saveRoom(roomId, state);
@@ -72,4 +94,11 @@ async function updateRoom(roomId, mutator) {
   throw lastErr || new Error('Kamer opslaan mislukt');
 }
 
-module.exports = { loadRoom, updateRoom, pruneRoom };
+function listPeersForDisplay(state) {
+  return pruneRoom(
+    { peers: { ...(state.peers || {}) }, signals: state.signals || [] },
+    PEER_DISPLAY_MS
+  ).peers;
+}
+
+module.exports = { loadRoom, updateRoom, pruneRoom, listPeersForDisplay, mergePeerMaps };

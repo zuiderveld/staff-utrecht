@@ -444,16 +444,21 @@ URPCall.prototype.poll = async function () {
             await this.handleSignal(sig);
         }
         await this.syncRoster(data.roster || []);
+        if (typeof window.onURPCallRosterChange === 'function') {
+            window.onURPCallRosterChange(this.roomId, data.roster || []);
+        }
         const n = (data.roster || []).length;
         const anyConnected = Array.from(this.connections.values()).some(function (c) {
             return c.pc.connectionState === 'connected';
         });
         if (anyConnected) {
             this.setStatus('Audio verbonden — je kunt praten');
-        } else {
+        } else if (n === 0) {
             this.setStatus(
-                n ? 'Verbonden met ' + n + ' andere(n) — audio opzetten…' : 'Wachten op anderen in de kamer…'
+                'Je bent alleen in dit kanaal — verbonden. Anderen kunnen meedoen via hetzelfde kanaal.'
             );
+        } else {
+            this.setStatus('Verbonden met ' + n + ' andere(n) — audio opzetten…');
         }
     } catch (e) {
         this._pollFailures += 1;
@@ -501,7 +506,8 @@ URPCall.prototype.start = async function () {
             isStaff: this.isStaff,
         },
     });
-    this.setStatus('URP Call actief — microfoon aan');
+    this.updateParticipants([]);
+    this.setStatus('Verbonden — je kunt alleen wachten of al praten zodra iemand joint');
     const self = this;
     this.pollTimer = setInterval(function () {
         self.poll();
@@ -566,4 +572,15 @@ function stopURPCall(containerId) {
         activeCalls[containerId].stop();
         delete activeCalls[containerId];
     }
+}
+
+function getURPCallRoster(containerId) {
+    const call = activeCalls[containerId];
+    if (!call || !call.active) return [];
+    return call._lastRoster || [];
+}
+
+function getURPCallRoomId(containerId) {
+    const call = activeCalls[containerId];
+    return call && call.active ? call.roomId : null;
 }
