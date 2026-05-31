@@ -4,9 +4,6 @@
 module.exports = {
   clientId: '1105558581304098867',
 
-  /** Burger — mag speler-supportkanalen gebruiken */
-  burgerRoleId: '1502448704911573113',
-
   /** Ranks van hoog naar laag (lage volgorde = hoogste rang) */
   ranks: [
     { id: 'founder', naam: 'Founder', kleur: '#ffd700', volgorde: 1, discordRoleId: '1502448623252930601' },
@@ -17,11 +14,9 @@ module.exports = {
     { id: 'staff', naam: 'Staff', kleur: '#22c55e', volgorde: 6, discordRoleId: '1502448659839582230' },
   ],
 
-  /** Mag het beheer-panel gebruiken */
+  /** Mag het beheer-panel — alleen Founder & Co-Founder */
   beheerRoleIds: [
     '1502448623252930601',
     '1502448625366732971',
-    '1502448635709751457',
-    '1502448643041661088',
   ],
 };

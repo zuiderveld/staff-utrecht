@@ -11,24 +11,6 @@ function getBeheerRoleIds() {
   return rolesFile.beheerRoleIds || [];
 }
 
-function getBurgerRoleId() {
-  return process.env.DISCORD_BURGER_ROLE_ID || rolesFile.burgerRoleId || null;
-}
-
-function hasBurgerRole(userRoles) {
-  const burgerId = getBurgerRoleId();
-  if (!burgerId) return true;
-  return (userRoles || []).includes(burgerId);
-}
-
-function assertSupportAccess(member) {
-  if (!member.canUseSupport) {
-    throw new Error(
-      'Je hebt de Burger-rol nodig op de URP Discord om speler-support te gebruiken. Staff kan inloggen met een staffrol.'
-    );
-  }
-}
-
 function getRanks() {
   return (rolesFile.ranks || []).map((r) => ({
     ...r,
@@ -119,8 +101,6 @@ async function verifyGuildMember(accessToken) {
   const displayName = member.nick || user.global_name || user.username;
   const { rank, isBeheer } = resolveAccess(userRoles);
   const isStaff = !!(rank || isBeheer);
-  const isBurger = hasBurgerRole(userRoles);
-  const canUseSupport = isStaff || isBurger;
 
   return {
     username: displayName,
@@ -131,8 +111,6 @@ async function verifyGuildMember(accessToken) {
     isStaff,
     isBeheer,
     isModerator: isStaff,
-    isBurger,
-    canUseSupport,
     rankId: rank?.rankId || null,
     rankNaam: rank?.rankNaam || (isBeheer ? 'Beheer' : null),
   };
@@ -282,9 +260,7 @@ module.exports = {
   exchangeCode,
   verifyAccessToken,
   verifyGuildMember,
-  assertSupportAccess,
   getBeheerRoleIds,
-  getBurgerRoleId,
   getStaffTeamLive,
   getGuildRolesMap,
 };

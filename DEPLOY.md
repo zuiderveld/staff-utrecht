@@ -20,13 +20,12 @@ api/router.js          ← ALLEEN dit in api/
 server/lib/            ← alle API-logica
 scripts/vercel-prep.js
 vercel.json
-index.html, support.html, js/, css/, data/, ...
+index.html, dashboard.html, js/, css/, data/, admin/, ...
 ```
 
 ### Mag NIET meer in api/ staan
 
 - ~~api/staff-auth.js~~
-- ~~api/discord-auth.js~~
 - ~~api/lib/~~ (hele map)
 
 De build `node scripts/vercel-prep.js` verwijdert oude api-bestanden automatisch als je per ongeluk nog oude files uploadt.

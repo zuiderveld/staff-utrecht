@@ -22,14 +22,6 @@ function isStaff() {
     return sessionStorage.getItem('urpStaffIsStaff') === 'true';
 }
 
-function isBurger() {
-    return sessionStorage.getItem('urpStaffIsBurger') === 'true';
-}
-
-function canUseSupport() {
-    return isStaff() || sessionStorage.getItem('urpStaffCanSupport') === 'true';
-}
-
 function discordId() {
     return sessionStorage.getItem('urpStaffDiscordId') || '';
 }
@@ -47,8 +39,6 @@ function setSession(data) {
     sessionStorage.setItem('urpStaffAccessToken', data.accessToken || '');
     sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
     sessionStorage.setItem('urpStaffIsStaff', data.isStaff ? 'true' : 'false');
-    sessionStorage.setItem('urpStaffIsBurger', data.isBurger ? 'true' : 'false');
-    sessionStorage.setItem('urpStaffCanSupport', data.canUseSupport ? 'true' : 'false');
     if (data.discordId) sessionStorage.setItem('urpStaffDiscordId', data.discordId);
     else sessionStorage.removeItem('urpStaffDiscordId');
     if (data.avatarUrl) sessionStorage.setItem('urpStaffAvatarUrl', data.avatarUrl);
@@ -65,8 +55,6 @@ function logout() {
     sessionStorage.removeItem('urpStaffBeheer');
     sessionStorage.removeItem('urpStaffRankNaam');
     sessionStorage.removeItem('urpStaffIsStaff');
-    sessionStorage.removeItem('urpStaffIsBurger');
-    sessionStorage.removeItem('urpStaffCanSupport');
     sessionStorage.removeItem('urpStaffDiscordId');
     sessionStorage.removeItem('urpStaffAvatarUrl');
     sessionStorage.removeItem('urpStaffDiscordTag');
@@ -82,8 +70,8 @@ function requireLogin() {
         return false;
     }
     if (!isStaff()) {
-        alert('Alleen staff met Discord-rol heeft toegang tot het portaal. Gebruik Support voor hulp.');
-        window.location.replace('/support.html');
+        alert('Alleen staff met een URP Discord-staffrol heeft toegang tot dit portaal.');
+        logout();
         return false;
     }
     return true;
@@ -91,7 +79,7 @@ function requireLogin() {
 
 function requireBeheer() {
     if (!isBeheer()) {
-        alert('Geen toegang tot beheer. Vereist Founder, Co-Founder, Beheer Team of Bestuur Team.');
+        alert('Geen toegang tot beheer. Alleen Founder of Co-Founder.');
         window.location.replace('/dashboard.html');
         return false;
     }
@@ -108,23 +96,6 @@ async function discordAuthWithCode(code) {
     if (!res.ok) throw new Error(data.error || 'Discord inloggen mislukt');
     setSession(data);
     return data;
-}
-
-/** Support — URP Discord-lid (spelers: Burger-rol, staff: staffrol) */
-async function discordMemberAuthWithCode(code, redirectUri) {
-    const res = await fetch(SITE_API + '/api/discord-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, redirectUri: redirectUri || discordRedirectUri() }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Discord inloggen mislukt');
-    setSession(data);
-    return data;
-}
-
-function supportRedirectUri() {
-    return window.location.origin + '/support.html';
 }
 
 async function fetchSite() {
@@ -186,7 +157,6 @@ function renderHeader(active) {
         '<a href="/regels.html"' + (active === 'regels' ? ' class="active"' : '') + '>Regels</a>' +
         '<a href="/functies.html"' + (active === 'functies' ? ' class="active"' : '') + '>Staff functies</a>' +
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
-        '<a href="/support.html"' + (active === 'support' ? ' class="active"' : '') + '>Support</a>' +
         '</nav>' +
         '<div class="staff-actions">' +
         '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + rankLabel + '</span>' +
