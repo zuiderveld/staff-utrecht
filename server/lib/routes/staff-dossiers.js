@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const checkBeheer = require('../beheer-check');
-const { verifyAccessToken } = require('../discord-staff');
+const { verifyDossiersAccess } = require('../discord-staff');
 
 const BLOB_PATHNAME = 'urp-staff-dossiers.json';
 
@@ -111,9 +110,8 @@ module.exports = async function handler(req, res) {
   if (!accessToken) return res.status(401).json({ error: 'Log opnieuw in met Discord' });
 
   if (req.body?.dossiers) {
-    const beheer = await checkBeheer(accessToken);
-    if (!beheer.ok) return res.status(403).json({ error: beheer.error });
     try {
+      await verifyDossiersAccess(accessToken);
       const data = normalize(req.body.dossiers);
       await saveBlob(data);
       return res.status(200).json({ ok: true, dossiers: data });
@@ -123,7 +121,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    await verifyAccessToken(accessToken);
+    await verifyDossiersAccess(accessToken);
     const data = await getData();
     return res.status(200).json(data);
   } catch (err) {

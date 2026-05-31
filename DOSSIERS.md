@@ -8,10 +8,13 @@ Per persoon bijhouden: **staffwarns**, **ontslagen**, berichten en notities.
 
 ## Wie mag wat?
 
-| Actie | Wie |
-|-------|-----|
-| Dossiers bekijken | Alle ingelogde staff |
-| Persoon toevoegen, registratie, verwijderen | **Beheer** (Founder / Co-Founder) |
+| Actie | Wie (Discord role ID) |
+|-------|------------------------|
+| Dossiers bekijken & bewerken | **Founder** `1502448623252930601` |
+| | **Beheer Team** `1502448635709751457` |
+| | **Lead Coördinator** `1502448671957061702` |
+
+Andere staff-rollen zien geen menu-item Dossiers.
 
 ## Registraties
 

@@ -56,6 +56,7 @@
         <button type="button" class="active" data-tab="regels">Regels</button>
         <button type="button" data-tab="info">Staff functies</button>
         <button type="button" data-tab="team">Staff team</button>
+        <button type="button" data-tab="onderhoud">Onderhoud</button>
     </div>
 
     <div id="panelRegels" class="admin-panel active staff-card">
@@ -84,7 +85,30 @@
         </p>
     </div>
 
-    <button type="button" class="btn-save-all" id="btnSaveAll"><i class="fas fa-save"></i> Alles opslaan</button>
+    <div id="panelOnderhoud" class="admin-panel staff-card">
+        <div class="staff-card-title"><i class="fas fa-tools"></i> Onderhoud staff portaal</div>
+        <p class="staff-prose" style="color:#9ca3af;font-size:0.9rem;margin-bottom:1rem">
+            Staat dit aan, dan zien bezoekers een onderhoudsscherm. Op
+            <a href="https://www.utrechtroleplay.eu/status.html" target="_blank" rel="noopener" style="color:#a78bfa">status.utrechtroleplay.eu</a>
+            staat het staff portaal op <strong>Onderhoud</strong>.
+        </p>
+        <div class="admin-field">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="staffGlobalMaint" style="width:auto">
+                <span>Hele staff portaal in onderhoud</span>
+            </label>
+        </div>
+        <div class="admin-field">
+            <label>Onderhoudsbericht</label>
+            <textarea id="staffMaintMessage" rows="4" placeholder="Tekst voor bezoekers…"></textarea>
+        </div>
+        <button type="button" class="btn-small" id="btnSaveMaint" style="margin-top:0.5rem">
+            <i class="fas fa-save"></i> Onderhoud opslaan
+        </button>
+        <p id="maintStatus" class="staff-prose" style="font-size:0.8rem;margin-top:0.75rem;color:#6b7280"></p>
+    </div>
+
+    <button type="button" class="btn-save-all" id="btnSaveAll"><i class="fas fa-save"></i> Regels opslaan</button>
     <div class="status-msg" id="statusMsg"></div>
     <p class="login-hint" style="margin-top:1rem;color:#6b7280;font-size:0.75rem">
         Opslaan werkt met Vercel Blob op productie. Lokaal zonder Blob: wijzig <code>data/site.json</code>.
@@ -98,7 +122,54 @@
 
     let siteData = { regels: [], informatie: [], ranks: [] };
 
-    const tabPanels = { regels: 'panelRegels', info: 'panelInfo', team: 'panelTeam' };
+    const tabPanels = { regels: 'panelRegels', info: 'panelInfo', team: 'panelTeam', onderhoud: 'panelOnderhoud' };
+
+    function applyMaintState(s) {
+        if (!s) return;
+        document.getElementById('staffGlobalMaint').checked = !!s.global;
+        document.getElementById('staffMaintMessage').value = s.message || '';
+    }
+
+    async function loadMaint() {
+        const res = await fetch(SITE_API + '/api/maintenance', { cache: 'no-store' });
+        const s = await res.json();
+        applyMaintState(s);
+        const el = document.getElementById('maintStatus');
+        if (s._storage === 'default') {
+            el.textContent = 'Let op: zet BLOB_READ_WRITE_TOKEN in Vercel om onderhoud op te slaan.';
+            el.style.color = '#fca5a5';
+        } else {
+            el.textContent = 'Laatst geladen: ' + (s.updatedAt ? formatLiveTime(s.updatedAt) : '—');
+            el.style.color = '#6b7280';
+        }
+    }
+
+    document.getElementById('btnSaveMaint').addEventListener('click', async function () {
+        const box = document.getElementById('maintStatus');
+        try {
+            const res = await fetch(SITE_API + '/api/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accessToken: accessToken(),
+                    maintenance: {
+                        global: document.getElementById('staffGlobalMaint').checked,
+                        message: document.getElementById('staffMaintMessage').value.trim(),
+                    },
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Opslaan mislukt');
+            applyMaintState(data.maintenance);
+            box.textContent = 'Onderhoud opgeslagen — zichtbaar op staff site en statuspagina.';
+            box.style.color = '#86efac';
+        } catch (e) {
+            box.textContent = e.message;
+            box.style.color = '#fca5a5';
+        }
+    });
+
+    loadMaint();
     document.querySelectorAll('.admin-tabs button').forEach(function (btn) {
         btn.addEventListener('click', function () {
             document.querySelectorAll('.admin-tabs button').forEach(function (b) { b.classList.remove('active'); });

@@ -11,6 +11,17 @@ function getBeheerRoleIds() {
   return rolesFile.beheerRoleIds || [];
 }
 
+function getDossierViewRoleIds() {
+  const fromEnv = process.env.DISCORD_DOSSIER_VIEW_ROLES;
+  if (fromEnv) return fromEnv.split(',').map((s) => s.trim()).filter(Boolean);
+  return rolesFile.dossierViewRoleIds || [];
+}
+
+function canViewDossiers(userRoles) {
+  const ids = getDossierViewRoleIds();
+  return ids.some((id) => userRoles.includes(id));
+}
+
 function getRanks() {
   return (rolesFile.ranks || []).map((r) => ({
     ...r,
@@ -76,8 +87,9 @@ function resolveAccess(userRoles) {
   }
 
   const isBeheer = beheerIds.some((id) => userRoles.includes(id));
+  const dossiers = canViewDossiers(userRoles);
 
-  return { rank, isBeheer };
+  return { rank, isBeheer, canViewDossiers: dossiers };
 }
 
 function avatarUrlFromUser(user) {
@@ -99,7 +111,7 @@ async function verifyGuildMember(accessToken) {
   const member = await getGuildMember(user.id);
   const userRoles = member.roles || [];
   const displayName = member.nick || user.global_name || user.username;
-  const { rank, isBeheer } = resolveAccess(userRoles);
+  const { rank, isBeheer, canViewDossiers: mayViewDossiers } = resolveAccess(userRoles);
   const isStaff = !!(rank || isBeheer);
 
   return {
@@ -113,7 +125,18 @@ async function verifyGuildMember(accessToken) {
     isModerator: isStaff,
     rankId: rank?.rankId || null,
     rankNaam: rank?.rankNaam || (isBeheer ? 'Beheer' : null),
+    canViewDossiers: !!mayViewDossiers,
   };
+}
+
+async function verifyDossiersAccess(accessToken) {
+  const info = await verifyAccessToken(accessToken);
+  if (!info.canViewDossiers) {
+    throw new Error(
+      'Geen toegang tot staff dossiers. Alleen Lead Coördinator, Beheer Team en Founder.'
+    );
+  }
+  return info;
 }
 
 async function verifyAccessToken(accessToken) {
@@ -259,8 +282,11 @@ async function getGuildRolesMap() {
 module.exports = {
   exchangeCode,
   verifyAccessToken,
+  verifyDossiersAccess,
   verifyGuildMember,
   getBeheerRoleIds,
+  getDossierViewRoleIds,
+  canViewDossiers,
   getStaffTeamLive,
   getGuildRolesMap,
 };

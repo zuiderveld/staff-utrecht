@@ -34,11 +34,16 @@ function discordTag() {
     return sessionStorage.getItem('urpStaffDiscordTag') || '';
 }
 
+function canViewDossiers() {
+    return sessionStorage.getItem('urpStaffCanViewDossiers') === 'true';
+}
+
 function setSession(data) {
     sessionStorage.setItem('urpStaffUser', data.username || 'Gebruiker');
     sessionStorage.setItem('urpStaffAccessToken', data.accessToken || '');
     sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
     sessionStorage.setItem('urpStaffIsStaff', data.isStaff ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffCanViewDossiers', data.canViewDossiers ? 'true' : 'false');
     if (data.discordId) sessionStorage.setItem('urpStaffDiscordId', data.discordId);
     else sessionStorage.removeItem('urpStaffDiscordId');
     if (data.avatarUrl) sessionStorage.setItem('urpStaffAvatarUrl', data.avatarUrl);
@@ -58,8 +63,19 @@ function logout() {
     sessionStorage.removeItem('urpStaffDiscordId');
     sessionStorage.removeItem('urpStaffAvatarUrl');
     sessionStorage.removeItem('urpStaffDiscordTag');
+    sessionStorage.removeItem('urpStaffCanViewDossiers');
     sessionStorage.removeItem('urpStaffRedirect');
     window.location.replace('/');
+}
+
+function requireDossiersAccess() {
+    if (!requireLogin()) return false;
+    if (!canViewDossiers()) {
+        alert('Geen toegang tot staff dossiers. Alleen Lead Coördinator, Beheer Team en Founder.');
+        window.location.replace('/dashboard.html');
+        return false;
+    }
+    return true;
 }
 
 /** Staff-portaal pagina's (dashboard, regels, …) */
@@ -157,7 +173,9 @@ function renderHeader(active) {
         '<a href="/regels.html"' + (active === 'regels' ? ' class="active"' : '') + '>Regels</a>' +
         '<a href="/functies.html"' + (active === 'functies' ? ' class="active"' : '') + '>Staff functies</a>' +
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
-        '<a href="/dossiers.html"' + (active === 'dossiers' ? ' class="active"' : '') + '>Dossiers</a>' +
+        (canViewDossiers()
+            ? '<a href="/dossiers.html"' + (active === 'dossiers' ? ' class="active"' : '') + '>Dossiers</a>'
+            : '') +
         '</nav>' +
         '<div class="staff-actions">' +
         '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + rankLabel + '</span>' +

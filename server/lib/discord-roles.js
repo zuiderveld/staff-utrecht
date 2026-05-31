@@ -19,4 +19,11 @@ module.exports = {
     '1502448623252930601',
     '1502448625366732971',
   ],
+
+  /** Staff dossiers bekijken/bewerken — Lead Coördinator, Beheer Team, Founder */
+  dossierViewRoleIds: [
+    '1502448623252930601',
+    '1502448635709751457',
+    '1502448671957061702',
+  ],
 };
