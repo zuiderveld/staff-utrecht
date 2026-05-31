@@ -46,7 +46,7 @@ function requireLogin() {
 
 function requireBeheer() {
     if (!isBeheer()) {
-        alert('Geen toegang tot beheer. Vereist Founder, Beheer Team of Bestuur Team.');
+        alert('Geen toegang tot beheer. Vereist Founder, Co-Founder, Beheer Team of Bestuur Team.');
         window.location.replace('/dashboard.html');
         return false;
     }
@@ -122,7 +122,7 @@ function renderHeader(active) {
         '<nav class="staff-links">' +
         '<a href="/dashboard.html"' + (active === 'home' ? ' class="active"' : '') + '>Home</a>' +
         '<a href="/regels.html"' + (active === 'regels' ? ' class="active"' : '') + '>Regels</a>' +
-        '<a href="/informatie.html"' + (active === 'info' ? ' class="active"' : '') + '>Informatie</a>' +
+        '<a href="/functies.html"' + (active === 'functies' ? ' class="active"' : '') + '>Staff functies</a>' +
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
         '</nav>' +
         '<div class="staff-actions">' +
@@ -157,6 +157,82 @@ function renderRegels(regels, container) {
             );
         })
         .join('');
+}
+
+function roleIdChip(id) {
+    return (
+        '<button type="button" class="staff-role-chip" data-role-id="' +
+        escapeHtml(id) +
+        '" title="Klik om role-ID te kopiëren">' +
+        '<i class="fas fa-hashtag"></i><code>' +
+        escapeHtml(id) +
+        '</code></button>'
+    );
+}
+
+function roleIdList(ids) {
+    if (!ids || !ids.length) return '';
+    return '<div class="staff-role-list">' + ids.map(roleIdChip).join('') + '</div>';
+}
+
+function bindRoleCopy(container) {
+    container.querySelectorAll('.staff-role-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            const id = chip.getAttribute('data-role-id');
+            if (!id || !navigator.clipboard) return;
+            navigator.clipboard.writeText(id).then(function () {
+                chip.classList.add('copied');
+                setTimeout(function () { chip.classList.remove('copied'); }, 1200);
+            });
+        });
+    });
+}
+
+function renderFuncties(data, container) {
+    if (!data || !data.secties) {
+        container.innerHTML = '<p class="staff-empty">Geen functies gevonden.</p>';
+        return;
+    }
+
+    let html =
+        '<div class="staff-card staff-functies-card">' +
+        '<div class="staff-card-title"><i class="fas fa-layer-group"></i> ' +
+        escapeHtml(data.titel || 'Staffrangen & Functies') +
+        '</div>';
+
+    data.secties.forEach(function (sectie) {
+        html +=
+            '<div class="staff-functie-sectie">' +
+            '<p class="staff-functie-desc"><i class="fas fa-chevron-right"></i> ' +
+            escapeHtml(sectie.beschrijving || '') +
+            '</p>' +
+            roleIdList(sectie.rollen) +
+            '</div>';
+    });
+    html += '</div>';
+
+    if (data.extra && data.extra.items && data.extra.items.length) {
+        html +=
+            '<div class="staff-card staff-functies-card">' +
+            '<div class="staff-card-title"><i class="fas fa-puzzle-piece"></i> ' +
+            escapeHtml(data.extra.titel || 'Extra functies') +
+            '</div>';
+        data.extra.items.forEach(function (item) {
+            html += '<div class="staff-functie-extra">';
+            html += roleIdList(item.rollen);
+            html += '<p class="staff-functie-uitleg">' + escapeHtml(item.uitleg || '') + '</p>';
+            if (item.vanaf && item.vanaf.length) {
+                html +=
+                    '<p class="staff-functie-vanaf-label">Mogelijk vanaf:</p>' +
+                    roleIdList(item.vanaf);
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+    bindRoleCopy(container);
 }
 
 function renderInfo(sections, container) {

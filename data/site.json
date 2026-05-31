@@ -44,7 +44,7 @@
   "informatie": [
     {
       "titel": "Welkom op het Staff Portaal",
-      "inhoud": "Dit is het officiële URP Staff portaal. Hier vind je regels, informatie en het team per rank."
+      "inhoud": "Dit is het officiële URP Staff portaal. Hier vind je regels, staff functies (met role-ID's) en het team per rank."
     },
     {
       "titel": "Communicatie",
@@ -53,10 +53,11 @@
   ],
   "ranks": [
     { "id": "founder", "naam": "Founder", "kleur": "#ffd700", "volgorde": 1, "leden": [] },
-    { "id": "beheer-team", "naam": "Beheer Team", "kleur": "#a855f7", "volgorde": 2, "leden": [] },
-    { "id": "bestuur-team", "naam": "Bestuur Team", "kleur": "#ef4444", "volgorde": 3, "leden": [] },
-    { "id": "hogerop-team", "naam": "Hogerop Team", "kleur": "#f97316", "volgorde": 4, "leden": [] },
-    { "id": "staff", "naam": "Staff", "kleur": "#22c55e", "volgorde": 5, "leden": [] }
+    { "id": "co-founder", "naam": "Co-Founder", "kleur": "#facc15", "volgorde": 2, "leden": [] },
+    { "id": "beheer-team", "naam": "Beheer Team", "kleur": "#a855f7", "volgorde": 3, "leden": [] },
+    { "id": "bestuur-team", "naam": "Bestuur Team", "kleur": "#ef4444", "volgorde": 4, "leden": [] },
+    { "id": "hogerop-team", "naam": "Hogerop Team", "kleur": "#f97316", "volgorde": 5, "leden": [] },
+    { "id": "staff", "naam": "Staff", "kleur": "#22c55e", "volgorde": 6, "leden": [] }
   ],
   "updatedAt": null
 }

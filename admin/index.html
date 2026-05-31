@@ -49,12 +49,12 @@
 <main class="staff-container" style="padding-bottom:3rem">
     <div class="staff-hero">
         <h2>Staff <span>Beheer</span></h2>
-        <p>Regels, informatie en team beheren</p>
+        <p>Regels beheren · functies & team via Discord/data</p>
     </div>
 
     <div class="admin-tabs">
         <button type="button" class="active" data-tab="regels">Regels</button>
-        <button type="button" data-tab="info">Informatie</button>
+        <button type="button" data-tab="info">Staff functies</button>
         <button type="button" data-tab="team">Staff team</button>
     </div>
 
@@ -67,18 +67,18 @@
     </div>
 
     <div id="panelInfo" class="admin-panel staff-card">
-        <div class="staff-card-title"><i class="fas fa-info-circle"></i> Informatie</div>
-        <div id="infoEditors"></div>
-        <div class="btn-row">
-            <button type="button" class="btn-small" id="addInfoBlock">+ Blok</button>
-        </div>
+        <div class="staff-card-title"><i class="fas fa-layer-group"></i> Staff functies</div>
+        <p class="staff-prose" style="color:#9ca3af;font-size:0.9rem;line-height:1.6">
+            Functies en Discord role-ID's staan in <code>data/functies.json</code>.
+            Pas dat bestand aan en deploy opnieuw. Op de site: <a href="/functies.html" style="color:#a78bfa">Staff functies</a>.
+        </p>
     </div>
 
     <div id="panelTeam" class="admin-panel staff-card">
         <div class="staff-card-title"><i class="fas fa-users"></i> Staff team</div>
         <p class="staff-prose" style="color:#9ca3af;font-size:0.9rem;line-height:1.6">
             Het teamoverzicht wordt <strong>automatisch</strong> geladen vanuit Discord.
-            Wie welke rank ziet, hangt af van de serverrollen (Founder, Beheer Team, enz.).
+            Wie welke rank ziet, hangt af van de serverrollen (Founder, Co-Founder, Beheer Team, enz.).
             Voeg iemand toe of verwijder een rol op Discord — na max. ~90 seconden staat het op
             <a href="/team.html" style="color:#a78bfa">Staff team</a>.
         </p>
@@ -129,26 +129,6 @@
         });
     }
 
-    function renderInfoEditors() {
-        const el = document.getElementById('infoEditors');
-        el.innerHTML = (siteData.informatie || []).map(function (block, i) {
-            return (
-                '<div class="rank-editor" data-info-idx="' + i + '">' +
-                '<h4>Blok ' + (i + 1) + '</h4>' +
-                '<div class="admin-field"><label>Titel</label><input type="text" class="info-titel" value="' + escapeAttr(block.titel || '') + '"></div>' +
-                '<div class="admin-field"><label>Tekst</label><textarea class="info-inhoud">' + escapeAttr(block.inhoud || '') + '</textarea></div>' +
-                '<button type="button" class="btn-small btn-del-info">Verwijderen</button></div>'
-            );
-        }).join('');
-        el.querySelectorAll('.btn-del-info').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const idx = +btn.closest('[data-info-idx]').dataset.infoIdx;
-                siteData.informatie.splice(idx, 1);
-                renderInfoEditors();
-            });
-        });
-    }
-
     function collectFromDom() {
         siteData.regels = [];
         document.querySelectorAll('#regelsEditors [data-regel-idx]').forEach(function (box) {
@@ -157,14 +137,7 @@
                 items: box.querySelector('.regel-items').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean)
             });
         });
-        siteData.informatie = [];
-        document.querySelectorAll('#infoEditors [data-info-idx]').forEach(function (box) {
-            siteData.informatie.push({
-                titel: box.querySelector('.info-titel').value.trim(),
-                inhoud: box.querySelector('.info-inhoud').value.trim()
-            });
-        });
-        /* ranks/leden komen live van Discord — niet via beheer */
+        /* informatie/functies: data/functies.json · team: Discord */
     }
 
     function escapeAttr(s) {
@@ -174,10 +147,6 @@
     document.getElementById('addRegelCat').addEventListener('click', function () {
         siteData.regels.push({ titel: 'Nieuwe categorie', items: [] });
         renderRegelsEditors();
-    });
-    document.getElementById('addInfoBlock').addEventListener('click', function () {
-        siteData.informatie.push({ titel: 'Nieuw', inhoud: '' });
-        renderInfoEditors();
     });
     document.getElementById('btnSaveAll').addEventListener('click', async function () {
         const box = document.getElementById('statusMsg');
@@ -198,7 +167,6 @@
     fetchSite().then(function (s) {
         siteData = s;
         renderRegelsEditors();
-        renderInfoEditors();
     });
 
 </script>
