@@ -1,5 +1,5 @@
 function isLoggedIn() {
-    return !!sessionStorage.getItem('urpStaffUser');
+    return !!sessionStorage.getItem('urpStaffUser') && !!sessionStorage.getItem('urpStaffAccessToken');
 }
 
 function isBeheer() {
@@ -10,15 +10,27 @@ function userName() {
     return sessionStorage.getItem('urpStaffUser') || 'Staff';
 }
 
-function login(naam) {
-    const user = (naam || 'Staff').trim() || 'Staff';
-    sessionStorage.setItem('urpStaffUser', user);
-    sessionStorage.setItem('urpStaffBeheer', 'true');
+function staffRank() {
+    return sessionStorage.getItem('urpStaffRankNaam') || '';
+}
+
+function accessToken() {
+    return sessionStorage.getItem('urpStaffAccessToken') || '';
+}
+
+function setSession(data) {
+    sessionStorage.setItem('urpStaffUser', data.username || 'Staff');
+    sessionStorage.setItem('urpStaffAccessToken', data.accessToken || '');
+    sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
+    if (data.rankNaam) sessionStorage.setItem('urpStaffRankNaam', data.rankNaam);
+    else sessionStorage.removeItem('urpStaffRankNaam');
 }
 
 function logout() {
     sessionStorage.removeItem('urpStaffUser');
+    sessionStorage.removeItem('urpStaffAccessToken');
     sessionStorage.removeItem('urpStaffBeheer');
+    sessionStorage.removeItem('urpStaffRankNaam');
     sessionStorage.removeItem('urpStaffRedirect');
     window.location.replace('/');
 }
@@ -32,6 +44,27 @@ function requireLogin() {
     return true;
 }
 
+function requireBeheer() {
+    if (!isBeheer()) {
+        alert('Geen toegang tot beheer. Vereist Founder, Beheer Team of Bestuur Team.');
+        window.location.replace('/dashboard.html');
+        return false;
+    }
+    return true;
+}
+
+async function discordAuthWithCode(code) {
+    const res = await fetch(SITE_API + '/api/staff-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code, redirectUri: discordRedirectUri() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Discord inloggen mislukt');
+    setSession(data);
+    return data;
+}
+
 async function fetchSite() {
     const res = await fetch(SITE_API + '/api/site-data', { cache: 'no-store' });
     return res.json();
@@ -41,7 +74,7 @@ async function saveSite(siteData) {
     const res = await fetch(SITE_API + '/api/site-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ site: siteData }),
+        body: JSON.stringify({ site: siteData, accessToken: accessToken() }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Opslaan mislukt');
@@ -49,6 +82,8 @@ async function saveSite(siteData) {
 }
 
 function renderHeader(active) {
+    const rank = staffRank();
+    const rankLabel = rank ? ' · ' + escapeHtml(rank) : '';
     const beheer = isBeheer()
         ? '<a href="/admin/" class="staff-btn staff-btn-primary"><i class="fas fa-cog"></i> Beheer</a>'
         : '';
@@ -66,7 +101,7 @@ function renderHeader(active) {
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
         '</nav>' +
         '<div class="staff-actions">' +
-        '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + '</span>' +
+        '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + rankLabel + '</span>' +
         beheer +
         '<button type="button" class="staff-btn staff-btn-danger" onclick="logout()">' +
         '<i class="fas fa-sign-out-alt"></i> Uit</button></div></div></div></header>'

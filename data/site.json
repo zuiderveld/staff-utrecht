@@ -1,20 +1,43 @@
 {
   "regels": [
     {
-      "titel": "Algemene staffregels",
+      "titel": "Algemene richtlijnen en regels",
       "items": [
-        "Wees professioneel en respectvol tegenover spelers en collega's.",
-        "Geen machtsmisbruik of favoritisme bij tickets en sancties.",
-        "Houd vertrouwelijke staff-informatie intern.",
-        "Volg de besluitvorming van hogere staff-rangen."
+        "De Discord-link van Utrecht moet in je bio/status vermeld staan. Tag is optioneel. Als je dit niet doet word je niet meegenomen in promoties en ontvang je staffwarn(s).",
+        "Spelen op andere servers is niet toegestaan, met uitzondering van testservers.",
+        "Het hebben van andere roleplayservers in je bio, staff zijn op andere servers of het bezitten van een eigen server wordt gezien als dubbelclannen en leidt tot ontslag.",
+        "Het gebruik of bezit van cheats, zowel op Utrecht Roleplay als op andere servers, resulteert in direct ontslag en een blacklist.",
+        "Het lekken, delen of verspreiden van persoonlijke informatie van burgers of staffleden leidt per direct tot ontslag en een staffblacklist.",
+        "Het onterecht disconnecten, deafenen of dempen van burgers of staffleden leidt tot staffsancties.",
+        "Indien je je bezig houdt met zaken die de server kunnen schaden en het imago ervan, kunnen wij ervoor kiezen om jou van je rollen te ontnemen.",
+        "Op het moment dat je ontslag neemt en er toch voor kiest om terug te komen, kun je worden aangenomen, maar wel minimaal 2 rangen lager dan wat je voorheen was."
       ]
     },
     {
-      "titel": "Tickets & support",
+      "titel": "Sancties & bevoegdheden",
       "items": [
-        "Reageer tijdig op tickets en meldingen.",
-        "Documenteer belangrijke beslissingen kort en duidelijk.",
-        "Escaleer complexe zaken naar management."
+        "Het weghalen van taken of bans die je zelf niet hebt uitgedeeld, zal leiden tot een warn of ontslag. Dit moet altijd besproken worden met het stafflid die de sanctie heeft opgelegd.",
+        "Eigen staffzaken mogen alleen behandeld worden vanaf de rol Adviseur, indien dit op een correcte en eerlijke manier wordt gedaan.",
+        "Je mag geen staffzaken behandelen die betrekking hebben op je eigen gang of vrienden of waar jijzelf bij betrokken bent (met uitzondering als je mede-bestuur+ bent).",
+        "Het gebruiken van staffperms op welke manier dan ook waarmee je een persoonlijk voordeel binnen roleplay krijgt, wordt gezien als staffabuse.",
+        "Het reviven van personen zonder bewijs te hebben gezien valt onder staffabuse.",
+        "Het overtreden van de APV kan in ernstige gevallen leiden tot staffsancties.",
+        "Staffwarns en ontslagen kunnen uitsluitend worden uitgevoerd door Staff Coördinatoren en Lead Coördinatoren.",
+        "Tijdens staffdienst is het ten strengste verboden om deel te nemen aan roleplay-scenario's of rond te rijden in de stad.",
+        "Tijdens een staffzaak dien jij netjes in gesprek te gaan met de persoon en om clips te vragen of ander bewijsmateriaal indien dit nodig is."
+      ]
+    },
+    {
+      "titel": "Extra",
+      "items": [
+        "Crosshairs zijn vanaf nu in Utrecht Roleplay wél toegestaan.",
+        "Het vragen om promoties zal leiden tot een staffwarn.",
+        "Iedereen moet URP voor zijn naam hebben in-game, met uitzondering van het Beheer Team.",
+        "Het inspawnen van voertuigen via /tx is niet toegestaan.",
+        "Het gebruiken van tx-perms buiten staffdienst is ook niet toegestaan.",
+        "Het geven van promoties wordt enkel gedaan door Beheer of door iemand van Beheer Team met toestemming.",
+        "Er zijn GEEN anticheat testers. Als iemand dit zegt: alsnog bannen.",
+        "Schelden met ziektes zal per direct leiden tot ontslag uit het staffteam."
       ]
     }
   ],
@@ -29,10 +52,10 @@
     }
   ],
   "ranks": [
-    { "id": "eigenaar", "naam": "Eigenaar", "kleur": "#ffd700", "volgorde": 1, "leden": [] },
-    { "id": "management", "naam": "Management", "kleur": "#a855f7", "volgorde": 2, "leden": [] },
-    { "id": "hoofd-staff", "naam": "Hoofd-Staff", "kleur": "#ef4444", "volgorde": 3, "leden": [] },
-    { "id": "senior-staff", "naam": "Senior Staff", "kleur": "#f97316", "volgorde": 4, "leden": [] },
+    { "id": "founder", "naam": "Founder", "kleur": "#ffd700", "volgorde": 1, "leden": [] },
+    { "id": "beheer-team", "naam": "Beheer Team", "kleur": "#a855f7", "volgorde": 2, "leden": [] },
+    { "id": "bestuur-team", "naam": "Bestuur Team", "kleur": "#ef4444", "volgorde": 3, "leden": [] },
+    { "id": "hogerop-team", "naam": "Hogerop Team", "kleur": "#f97316", "volgorde": 4, "leden": [] },
     { "id": "staff", "naam": "Staff", "kleur": "#22c55e", "volgorde": 5, "leden": [] }
   ],
   "updatedAt": null

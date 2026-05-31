@@ -17,17 +17,15 @@
         .login-box h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
         .login-box h1 span { color: #a78bfa; }
         .login-box > p { color: #9ca3af; margin-bottom: 1.5rem; font-size: 0.9rem; }
-        .login-field { text-align: left; margin-bottom: 1rem; }
-        .login-field label { display: block; font-size: 0.8rem; color: #9ca3af; margin-bottom: 0.35rem; }
-        .login-field input {
-            width: 100%; padding: 0.75rem 1rem; border-radius: 12px;
-            border: 1px solid #2a2c35; background: rgba(0,0,0,0.35); color: #eef2ff; font: inherit;
-        }
-        .btn-login {
+        .btn-discord {
             width: 100%; padding: 1rem; border: none; border-radius: 50px;
-            background: #8b5cf6; color: #0c0a12; font-weight: 700; font-size: 1rem; cursor: pointer;
+            background: #5865f2; color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
         }
-        .btn-login:hover { filter: brightness(1.1); }
+        .btn-discord:hover { filter: brightness(1.08); }
+        .btn-discord:disabled { opacity: 0.6; cursor: wait; }
+        .login-error { color: #fca5a5; font-size: 0.85rem; margin-top: 1rem; display: none; }
+        .login-error.show { display: block; }
         .login-hint { font-size: 0.75rem; color: #6b7280; margin-top: 1.25rem; }
     </style>
 </head>
@@ -37,35 +35,64 @@
     <div class="login-box">
         <img src="/assets/favicon.png" alt="URP Staff">
         <h1>URP <span>Staff</span></h1>
-        <p>Apart staff-portaal · niet gekoppeld aan overheid-site</p>
-        <div class="login-field">
-            <label for="naam">Je naam</label>
-            <input type="text" id="naam" placeholder="Bijv. Gilles" autocomplete="name">
-        </div>
-        <button type="button" class="btn-login" id="btnLogin">
-            <i class="fas fa-arrow-right"></i> Inloggen
+        <p>Log in met Discord · alleen staff met de juiste serverrol</p>
+        <button type="button" class="btn-discord" id="btnDiscord">
+            <i class="fab fa-discord"></i> Inloggen met Discord
         </button>
+        <p class="login-error" id="loginError"></p>
         <p class="login-hint">Utrecht Roleplay · Staff Portaal</p>
     </div>
 </div>
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
 <script>
-    if (new URLSearchParams(location.search).get('redirect')) {
-        sessionStorage.setItem('urpStaffRedirect', new URLSearchParams(location.search).get('redirect'));
-    }
-    if (isLoggedIn()) {
-        location.replace(sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html');
-        sessionStorage.removeItem('urpStaffRedirect');
-    }
-    document.getElementById('btnLogin').onclick = function () {
-        login(document.getElementById('naam').value);
-        location.replace(sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html');
-        sessionStorage.removeItem('urpStaffRedirect');
-    };
-    document.getElementById('naam').onkeydown = function (e) {
-        if (e.key === 'Enter') document.getElementById('btnLogin').click();
-    };
+    (function () {
+        const params = new URLSearchParams(location.search);
+        if (params.get('redirect')) {
+            sessionStorage.setItem('urpStaffRedirect', params.get('redirect'));
+        }
+
+        const errEl = document.getElementById('loginError');
+        const btn = document.getElementById('btnDiscord');
+
+        function showError(msg) {
+            errEl.textContent = msg;
+            errEl.classList.add('show');
+        }
+
+        function goAfterLogin() {
+            const dest = sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html';
+            sessionStorage.removeItem('urpStaffRedirect');
+            location.replace(dest);
+        }
+
+        async function handleCode(code) {
+            btn.disabled = true;
+            try {
+                await discordAuthWithCode(code);
+                history.replaceState(null, '', '/');
+                goAfterLogin();
+            } catch (e) {
+                showError(e.message);
+                btn.disabled = false;
+            }
+        }
+
+        const code = params.get('code');
+        if (code) {
+            handleCode(code);
+            return;
+        }
+
+        if (isLoggedIn()) {
+            goAfterLogin();
+            return;
+        }
+
+        btn.onclick = function () {
+            window.location.href = getDiscordAuthUrl();
+        };
+    })();
 </script>
 </body>
 </html>

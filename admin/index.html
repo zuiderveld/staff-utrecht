@@ -94,7 +94,7 @@
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
 <script>
-    if (!requireLogin()) throw 0;
+    if (!requireLogin() || !requireBeheer()) throw 0;
     mountHeader('');
 
     let siteData = { regels: [], informatie: [], ranks: [] };

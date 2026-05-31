@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const checkBeheer = require('./lib/beheer-check');
 
 const BLOB_PATHNAME = 'urp-staff-portaal-data.json';
 
@@ -102,6 +103,9 @@ async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    const beheer = await checkBeheer(req.body?.accessToken);
+    if (!beheer.ok) return res.status(403).json({ error: beheer.error });
+
     try {
       const data = normalize(req.body?.site || {});
       await saveBlob(data);
