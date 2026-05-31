@@ -480,14 +480,94 @@ body {
 
 .support-channel-card {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
     padding: 1rem 1.25rem;
     border-radius: 14px;
     border: 1px solid rgba(139, 92, 246, 0.3);
     background: rgba(0, 0, 0, 0.3);
+}
+
+.support-channel-card-connected {
+    border-color: rgba(34, 197, 94, 0.55);
+    box-shadow: 0 0 24px rgba(34, 197, 94, 0.12);
+}
+
+.support-channel-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.support-channel-members {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.support-channel-members-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+}
+
+.support-channel-members-empty {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.support-channel-member-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.support-channel-member {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    color: #eef2ff;
+}
+
+.support-channel-member .support-user-avatar,
+.support-channel-member .support-user-avatar-ph {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.support-channel-member-you {
+    color: #86efac;
+    font-weight: 600;
+}
+
+.support-member-staff {
+    font-style: normal;
+    font-size: 0.75rem;
+    color: #a78bfa;
+    margin-left: 0.25rem;
+}
+
+.support-channel-call-slot {
+    margin-top: 1rem;
+}
+
+.support-channel-call-slot .support-call-panel {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
 }
 
 .support-channel-card-body {
@@ -506,9 +586,13 @@ body {
 }
 
 .support-call-panel {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
+    margin-top: 0;
+    padding-top: 1rem;
     border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+#callPanelHost:empty {
+    display: none;
 }
 
 .support-channel-btn {

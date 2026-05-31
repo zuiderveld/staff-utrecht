@@ -68,6 +68,9 @@ URPCall.prototype.renderShell = function () {
     };
     this.container.querySelector('#urpBtnLeave').onclick = function () {
         self.stop();
+        if (typeof disconnectFromChannel === 'function' && connectedChannelId) {
+            disconnectFromChannel();
+        }
     };
 };
 
@@ -240,61 +243,155 @@ URPCall.prototype.sendSignal = async function (to, type, data) {
     await this.api('signal', { to: to, type: type, data: data });
 };
 
+function sessionToJson(desc) {
+    if (!desc) return null;
+    return { type: desc.type, sdp: desc.sdp };
+}
+
+function iceToJson(candidate) {
+    return candidate && candidate.toJSON ? candidate.toJSON() : candidate;
+}
+
+URPCall.prototype.shouldInitiateOffer = function (remoteId) {
+    return String(this.peerId) > String(remoteId);
+};
+
+URPCall.prototype.flushIceQueue = async function (conn) {
+    const pc = conn.pc;
+    const queue = conn.iceQueue || [];
+    conn.iceQueue = [];
+    for (let i = 0; i < queue.length; i++) {
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(queue[i]));
+        } catch (e) {
+            /* stale ice */
+        }
+    }
+};
+
+URPCall.prototype.queueIceCandidate = async function (conn, data) {
+    if (!data) return;
+    const pc = conn.pc;
+    if (!pc.remoteDescription) {
+        conn.iceQueue = conn.iceQueue || [];
+        conn.iceQueue.push(data);
+        return;
+    }
+    try {
+        await pc.addIceCandidate(new RTCIceCandidate(data));
+    } catch (e) {
+        /* ignore */
+    }
+};
+
+URPCall.prototype.playRemoteAudio = function (audio) {
+    if (!audio) return;
+    audio.muted = false;
+    audio.volume = 1;
+    const p = audio.play();
+    if (p && p.catch) {
+        p.catch(function () {
+            /* browser blokkeert soms tot interactie */
+        });
+    }
+};
+
+URPCall.prototype.initiateOffer = async function (remoteId) {
+    const conn = this.connections.get(remoteId);
+    if (!conn || !this.localStream) return;
+    const pc = conn.pc;
+    if (pc.signalingState !== 'stable' || conn.makingOffer) return;
+    conn.makingOffer = true;
+    try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await this.sendSignal(remoteId, 'offer', sessionToJson(pc.localDescription));
+    } catch (err) {
+        console.warn('offer', remoteId, err);
+    } finally {
+        conn.makingOffer = false;
+    }
+};
+
 URPCall.prototype.createPeerConnection = function (remoteId) {
     const self = this;
+    if (this.connections.has(remoteId)) return this.connections.get(remoteId).pc;
+
     const pc = new RTCPeerConnection({ iceServers: this.iceServers });
     if (this.localStream) {
         this.localStream.getTracks().forEach(function (t) {
             pc.addTrack(t, self.localStream);
         });
     }
+
     const audio = document.createElement('audio');
     audio.autoplay = true;
     audio.playsInline = true;
+    audio.setAttribute('playsinline', '');
+    audio.dataset.remotePeer = remoteId;
+    audio.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none';
+    if (this.container) this.container.appendChild(audio);
+
     pc.ontrack = function (e) {
+        if (!e.streams[0]) return;
         audio.srcObject = e.streams[0];
+        self.playRemoteAudio(audio);
         self.attachRemoteAnalyser(remoteId, e.streams[0]);
     };
+
     pc.onicecandidate = function (e) {
-        if (e.candidate) self.sendSignal(remoteId, 'ice', e.candidate);
-    };
-    const polite = self.peerId > remoteId;
-    pc.onnegotiationneeded = async function () {
-        try {
-            if (!polite) return;
-            await pc.setLocalDescription(await pc.createOffer());
-            await self.sendSignal(remoteId, 'offer', pc.localDescription);
-        } catch (err) {
-            console.warn('negotiation', err);
+        if (e.candidate) {
+            self.sendSignal(remoteId, 'ice', iceToJson(e.candidate)).catch(function () {});
         }
     };
-    this.connections.set(remoteId, { pc: pc, audio: audio, polite: polite, makingOffer: false });
+
+    pc.onconnectionstatechange = function () {
+        if (pc.connectionState === 'connected') {
+            self.setStatus('Audio verbonden — je kunt praten');
+        } else if (pc.connectionState === 'failed') {
+            self.setStatus('Verbinding mislukt — probeer opnieuw te verbinden');
+        }
+    };
+
+    const conn = { pc: pc, audio: audio, iceQueue: [], makingOffer: false };
+    this.connections.set(remoteId, conn);
+
+    if (this.shouldInitiateOffer(remoteId)) {
+        setTimeout(function () {
+            self.initiateOffer(remoteId);
+        }, 80);
+    }
+
     return pc;
+};
+
+URPCall.prototype.ensureConnection = function (remoteId) {
+    if (!this.connections.has(remoteId)) {
+        this.createPeerConnection(remoteId);
+    }
+    return this.connections.get(remoteId);
 };
 
 URPCall.prototype.handleSignal = async function (sig) {
     const remoteId = sig.from;
-    let conn = this.connections.get(remoteId);
-    if (!conn) {
-        this.createPeerConnection(remoteId);
-        conn = this.connections.get(remoteId);
-    }
+    const conn = this.ensureConnection(remoteId);
     const pc = conn.pc;
+
     try {
-        if (sig.type === 'offer') {
-            const polite = this.peerId > remoteId;
-            if (pc.signalingState !== 'stable' && !polite) return;
-            await pc.setRemoteDescription(sig.data);
-            await pc.setLocalDescription(await pc.createAnswer());
-            await this.sendSignal(remoteId, 'answer', pc.localDescription);
-        } else if (sig.type === 'answer') {
-            await pc.setRemoteDescription(sig.data);
-        } else if (sig.type === 'ice' && sig.data) {
-            try {
-                await pc.addIceCandidate(sig.data);
-            } catch (e) {
-                /* ignore stale ice */
+        if (sig.type === 'offer' && sig.data) {
+            if (pc.signalingState === 'have-local-offer') {
+                await pc.setLocalDescription({ type: 'rollback' });
             }
+            await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+            await this.flushIceQueue(conn);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await this.sendSignal(remoteId, 'answer', sessionToJson(pc.localDescription));
+        } else if (sig.type === 'answer' && sig.data) {
+            await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+            await this.flushIceQueue(conn);
+        } else if (sig.type === 'ice') {
+            await this.queueIceCandidate(conn, sig.data);
         }
     } catch (err) {
         console.warn('signal handle', sig.type, err);
@@ -308,11 +405,12 @@ URPCall.prototype.syncRoster = async function (roster) {
     }));
     roster.forEach(function (p) {
         if (p.id === self.peerId) return;
-        if (!self.connections.has(p.id)) self.createPeerConnection(p.id);
+        self.createPeerConnection(p.id);
     });
     self.connections.forEach(function (_conn, id) {
         if (!ids.has(id)) {
             _conn.pc.close();
+            if (_conn.audio && _conn.audio.parentNode) _conn.audio.parentNode.removeChild(_conn.audio);
             self.connections.delete(id);
         }
     });
@@ -364,7 +462,17 @@ URPCall.prototype.start = async function () {
     } catch (e) {
         /* default stun */
     }
-    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    this.localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+        },
+        video: false,
+    });
+    if (this._audioCtx && this._audioCtx.state === 'suspended') {
+        await this._audioCtx.resume();
+    }
     this.startVoiceMonitoring();
     await this.api('join', {
         peer: {
@@ -378,7 +486,7 @@ URPCall.prototype.start = async function () {
     const self = this;
     this.pollTimer = setInterval(function () {
         self.poll();
-    }, 900);
+    }, 450);
     this.heartbeatTimer = setInterval(function () {
         self.api('heartbeat').catch(function () {});
     }, 15000);
@@ -395,6 +503,7 @@ URPCall.prototype.stop = async function () {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.connections.forEach(function (c) {
         c.pc.close();
+        if (c.audio && c.audio.parentNode) c.audio.parentNode.removeChild(c.audio);
     });
     this.connections.clear();
     if (this.localStream) {

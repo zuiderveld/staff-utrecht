@@ -1,4 +1,4 @@
-/* Support: kanalen + handmatig URP Call verbinden */
+/* Support: kanalen + handmatig URP Call + wie zit in welk kanaal */
 
 function getCallRoomId(channel) {
     return channel?.callRoom || channel?.jitsiRoom || channel?.id || 'URP-Support';
@@ -6,6 +6,8 @@ function getCallRoomId(channel) {
 
 let supportConfig = null;
 let connectedChannelId = null;
+let channelPresence = {};
+let presenceTimer = null;
 
 function applySupportAccessUI() {
     const noBurger = document.getElementById('supportNoBurger');
@@ -32,6 +34,7 @@ async function initSupportPage() {
         else gav.style.display = 'none';
         await refreshSupportUI();
         applySupportAccessUI();
+        startPresencePoll();
     }
 
     if (params.get('code')) {
@@ -68,6 +71,35 @@ function getDiscordAuthUrlForSupport() {
     return 'https://discord.com/api/oauth2/authorize?' + params.toString();
 }
 
+function stopPresencePoll() {
+    if (presenceTimer) clearInterval(presenceTimer);
+    presenceTimer = null;
+}
+
+function startPresencePoll() {
+    stopPresencePoll();
+    refreshChannelPresence();
+    presenceTimer = setInterval(refreshChannelPresence, 3500);
+}
+
+async function refreshChannelPresence() {
+    if (!isLoggedIn()) return;
+    try {
+        const res = await fetch(
+            SITE_API +
+                '/api/support-queue?action=presence&accessToken=' +
+                encodeURIComponent(accessToken())
+        );
+        const data = await res.json();
+        if (res.ok && data.presence) {
+            channelPresence = data.presence;
+            renderChannelPicker(supportConfig?.channels || []);
+        }
+    } catch (e) {
+        /* stil falen */
+    }
+}
+
 async function refreshSupportUI() {
     const cfg = await fetch(
         SITE_API + '/api/support-queue?action=config&accessToken=' + encodeURIComponent(accessToken())
@@ -84,20 +116,86 @@ async function refreshSupportUI() {
     applySupportAccessUI();
 
     if (!supportConfig.canUseSupport && !supportConfig.isStaff) {
+        stopPresencePoll();
         return;
     }
 
-    renderChannelPicker(supportConfig.channels || []);
+    await refreshChannelPresence();
+}
+
+function renderChannelMembers(ch) {
+    const list = channelPresence[ch.id] || [];
+    if (!list.length) {
+        return (
+            '<div class="support-channel-members">' +
+            '<span class="support-channel-members-label">In dit kanaal</span>' +
+            '<p class="support-channel-members-empty">Nog niemand verbonden</p></div>'
+        );
+    }
+    return (
+        '<div class="support-channel-members">' +
+        '<span class="support-channel-members-label">In dit kanaal (' +
+        list.length +
+        ')</span>' +
+        '<ul class="support-channel-member-list">' +
+        list
+            .map(function (p) {
+                const av = p.avatarUrl
+                    ? '<img src="' + escapeHtml(p.avatarUrl) + '" alt="" class="support-user-avatar">'
+                    : '<span class="support-user-avatar support-user-avatar-ph"><i class="fas fa-user"></i></span>';
+                const you =
+                    p.id === discordId()
+                        ? ' <span class="support-channel-member-you">(jij)</span>'
+                        : '';
+                return (
+                    '<li class="support-channel-member">' +
+                    av +
+                    '<span>' +
+                    escapeHtml(p.name || 'Onbekend') +
+                    (p.isStaff ? ' <em class="support-member-staff">Staff</em>' : '') +
+                    you +
+                    '</span></li>'
+                );
+            })
+            .join('') +
+        '</ul></div>'
+    );
+}
+
+function getCallPanel() {
+    return document.getElementById('callPanel');
+}
+
+function getCallPanelHost() {
+    return document.getElementById('callPanelHost');
+}
+
+function mountCallPanelInChannel(channelId) {
+    const panel = getCallPanel();
+    const card = document.querySelector('.support-channel-card[data-channel="' + channelId + '"]');
+    const slot = card && card.querySelector('.support-channel-call-slot');
+    if (panel && slot) {
+        slot.appendChild(panel);
+        panel.hidden = false;
+    }
+}
+
+function mountCallPanelHome() {
+    const panel = getCallPanel();
+    const host = getCallPanelHost();
+    if (panel && host) {
+        host.appendChild(panel);
+        panel.hidden = true;
+    }
 }
 
 function renderChannelPicker(channels) {
     const el = document.getElementById('channelPicker');
-    const callPanel = document.getElementById('callPanel');
     const pickerHint = document.getElementById('guestPickHint');
 
     if (!channels.length) {
         el.innerHTML = '<p class="staff-empty">Geen supportkanalen beschikbaar voor jouw rol.</p>';
-        if (callPanel) callPanel.hidden = true;
+        mountCallPanelHome();
         return;
     }
 
@@ -105,9 +203,12 @@ function renderChannelPicker(channels) {
         .map(function (ch) {
             const isConnected = connectedChannelId === ch.id;
             return (
-                '<div class="support-channel-card" data-channel="' +
+                '<div class="support-channel-card' +
+                (isConnected ? ' support-channel-card-connected' : '') +
+                '" data-channel="' +
                 escapeHtml(ch.id) +
                 '">' +
+                '<div class="support-channel-card-top">' +
                 '<div class="support-channel-card-body">' +
                 '<strong>' +
                 escapeHtml(ch.naam) +
@@ -122,7 +223,10 @@ function renderChannelPicker(channels) {
                 '">' +
                 '<i class="fas fa-phone"></i> ' +
                 (isConnected ? 'Verbonden' : 'Verbinden') +
-                '</button></div>'
+                '</button></div>' +
+                renderChannelMembers(ch) +
+                '<div class="support-channel-call-slot"></div>' +
+                '</div>'
             );
         })
         .join('');
@@ -138,7 +242,12 @@ function renderChannelPicker(channels) {
     });
 
     if (pickerHint) pickerHint.hidden = !!connectedChannelId;
-    if (callPanel) callPanel.hidden = !connectedChannelId;
+
+    if (connectedChannelId) {
+        mountCallPanelInChannel(connectedChannelId);
+    } else {
+        mountCallPanelHome();
+    }
 }
 
 function connectToChannel(channel) {
@@ -146,20 +255,25 @@ function connectToChannel(channel) {
     connectedChannelId = channel.id;
     const nameEl = document.getElementById('connectedChannelName');
     if (nameEl) nameEl.textContent = channel.naam || channel.id;
-    document.getElementById('callPanel').hidden = false;
-    document.getElementById('guestPickHint').hidden = true;
     renderChannelPicker(supportConfig.channels || []);
-    startURPCall('urpCallGuest', getCallRoomId(channel));
+    const call = startURPCall('urpCallGuest', getCallRoomId(channel));
+    if (call && call.ensureAudioContext) {
+        call.ensureAudioContext();
+        if (call._audioCtx && call._audioCtx.state === 'suspended') {
+            call._audioCtx.resume();
+        }
+    }
+    setTimeout(refreshChannelPresence, 600);
 }
 
 function disconnectFromChannel() {
     connectedChannelId = null;
     stopURPCall('urpCallGuest');
-    const callPanel = document.getElementById('callPanel');
-    if (callPanel) callPanel.hidden = true;
+    mountCallPanelHome();
     const hint = document.getElementById('guestPickHint');
     if (hint) hint.hidden = false;
     renderChannelPicker(supportConfig?.channels || []);
+    refreshChannelPresence();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
