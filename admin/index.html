@@ -75,14 +75,13 @@
     </div>
 
     <div id="panelTeam" class="admin-panel staff-card">
-        <div class="staff-card-title"><i class="fas fa-users"></i> Ranks & leden</div>
-        <p class="login-hint" style="margin-bottom:1rem;color:#9ca3af;font-size:0.8rem">
-            Leden: één naam per regel. Optioneel: <code>Naam | @discord</code>
+        <div class="staff-card-title"><i class="fas fa-users"></i> Staff team</div>
+        <p class="staff-prose" style="color:#9ca3af;font-size:0.9rem;line-height:1.6">
+            Het teamoverzicht wordt <strong>automatisch</strong> geladen vanuit Discord.
+            Wie welke rank ziet, hangt af van de serverrollen (Founder, Beheer Team, enz.).
+            Voeg iemand toe of verwijder een rol op Discord — na max. ~90 seconden staat het op
+            <a href="/team.html" style="color:#a78bfa">Staff team</a>.
         </p>
-        <div id="rankEditors"></div>
-        <div class="btn-row">
-            <button type="button" class="btn-small" id="addRank">+ Rank</button>
-        </div>
     </div>
 
     <button type="button" class="btn-save-all" id="btnSaveAll"><i class="fas fa-save"></i> Alles opslaan</button>
@@ -150,32 +149,6 @@
         });
     }
 
-    function renderRankEditors() {
-        const el = document.getElementById('rankEditors');
-        el.innerHTML = (siteData.ranks || []).map(function (rank, i) {
-            const ledenText = (rank.leden || []).map(function (l) {
-                return l.discord ? l.naam + ' | ' + l.discord : l.naam;
-            }).join('\n');
-            return (
-                '<div class="rank-editor" data-rank-idx="' + i + '">' +
-                '<h4>' + escapeHtml(rank.naam || 'Rank') + '</h4>' +
-                '<div class="admin-field"><label>Rank ID (uniek, geen spaties)</label><input type="text" class="rank-id" value="' + escapeAttr(rank.id || '') + '"></div>' +
-                '<div class="admin-field"><label>Weergavenaam</label><input type="text" class="rank-naam" value="' + escapeAttr(rank.naam || '') + '"></div>' +
-                '<div class="admin-field"><label>Kleur (#hex)</label><input type="text" class="rank-kleur" value="' + escapeAttr(rank.kleur || '#8b5cf6') + '"></div>' +
-                '<div class="admin-field"><label>Volgorde (lager = hoger)</label><input type="number" class="rank-volgorde" value="' + (rank.volgorde || i + 1) + '"></div>' +
-                '<div class="admin-field"><label>Leden (naam of naam | @discord)</label><textarea class="rank-leden">' + escapeAttr(ledenText) + '</textarea></div>' +
-                '<button type="button" class="btn-small btn-del-rank">Rank verwijderen</button></div>'
-            );
-        }).join('');
-        el.querySelectorAll('.btn-del-rank').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const idx = +btn.closest('[data-rank-idx]').dataset.rankIdx;
-                siteData.ranks.splice(idx, 1);
-                renderRankEditors();
-            });
-        });
-    }
-
     function collectFromDom() {
         siteData.regels = [];
         document.querySelectorAll('#regelsEditors [data-regel-idx]').forEach(function (box) {
@@ -191,25 +164,7 @@
                 inhoud: box.querySelector('.info-inhoud').value.trim()
             });
         });
-        siteData.ranks = [];
-        document.querySelectorAll('#rankEditors [data-rank-idx]').forEach(function (box, i) {
-            const ledenRaw = box.querySelector('.rank-leden').value.split('\n');
-            const leden = ledenRaw.map(function (line) {
-                line = line.trim();
-                if (!line) return null;
-                const parts = line.split('|').map(function (s) { return s.trim(); });
-                return parts.length > 1
-                    ? { naam: parts[0], discord: parts[1] }
-                    : { naam: parts[0], discord: '' };
-            }).filter(Boolean);
-            siteData.ranks.push({
-                id: box.querySelector('.rank-id').value.trim() || 'rank-' + i,
-                naam: box.querySelector('.rank-naam').value.trim() || 'Rank',
-                kleur: box.querySelector('.rank-kleur').value.trim() || '#8b5cf6',
-                volgorde: parseInt(box.querySelector('.rank-volgorde').value, 10) || i + 1,
-                leden: leden
-            });
-        });
+        /* ranks/leden komen live van Discord — niet via beheer */
     }
 
     function escapeAttr(s) {
@@ -224,17 +179,6 @@
         siteData.informatie.push({ titel: 'Nieuw', inhoud: '' });
         renderInfoEditors();
     });
-    document.getElementById('addRank').addEventListener('click', function () {
-        siteData.ranks.push({
-            id: 'rank-' + Date.now(),
-            naam: 'Nieuwe rank',
-            kleur: '#8b5cf6',
-            volgorde: (siteData.ranks.length + 1),
-            leden: []
-        });
-        renderRankEditors();
-    });
-
     document.getElementById('btnSaveAll').addEventListener('click', async function () {
         const box = document.getElementById('statusMsg');
         collectFromDom();
@@ -255,7 +199,6 @@
         siteData = s;
         renderRegelsEditors();
         renderInfoEditors();
-        renderRankEditors();
     });
 
 </script>

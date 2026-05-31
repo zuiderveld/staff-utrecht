@@ -70,6 +70,31 @@ async function fetchSite() {
     return res.json();
 }
 
+async function fetchStaffTeam() {
+    const res = await fetch(SITE_API + '/api/staff-team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Team laden mislukt');
+    return data;
+}
+
+function formatLiveTime(iso) {
+    if (!iso) return '';
+    try {
+        return new Date(iso).toLocaleString('nl-NL', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    } catch {
+        return '';
+    }
+}
+
 async function saveSite(siteData) {
     const res = await fetch(SITE_API + '/api/site-data', {
         method: 'POST',
@@ -166,16 +191,23 @@ function renderTeam(ranks, container) {
                 ? '<div class="staff-member-grid">' +
                   leden
                       .map(function (m) {
+                          const av = m.avatarUrl
+                              ? '<img class="staff-member-avatar" src="' +
+                                escapeHtml(m.avatarUrl) +
+                                '" alt="" width="40" height="40" loading="lazy">'
+                              : '';
                           return (
                               '<div class="staff-member">' +
+                              av +
+                              '<div class="staff-member-text">' +
                               escapeHtml(m.naam) +
                               (m.discord ? '<small>' + escapeHtml(m.discord) + '</small>' : '') +
-                              '</div>'
+                              '</div></div>'
                           );
                       })
                       .join('') +
                   '</div>'
-                : '<p class="staff-empty">Nog geen leden toegevoegd.</p>';
+                : '<p class="staff-empty">Nog niemand met deze Discord-rol op de server.</p>';
             return (
                 '<div class="staff-rank-block">' +
                 '<div class="staff-rank-head">' +

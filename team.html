@@ -12,10 +12,11 @@
 <div class="staff-bg"></div>
 <div id="siteHeader"></div>
 <main class="staff-container">
-    <div class="staff-hero"><h2>Staff <span>Team</span></h2><p>Leden per rank</p></div>
+    <div class="staff-hero"><h2>Staff <span>Team</span></h2><p>Live vanuit Discord · elke rol = één rank</p></div>
+    <p class="staff-live-badge" id="liveBadge" style="display:none"></p>
     <div class="staff-card">
         <div class="staff-card-title"><i class="fas fa-users"></i> Teamoverzicht</div>
-        <div id="content"><p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden...</p></div>
+        <div id="content"><p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Team laden van Discord...</p></div>
     </div>
 </main>
 <footer class="staff-footer">© Utrecht Roleplay · Staff Portaal</footer>
@@ -24,7 +25,46 @@
 <script>
     if (!requireLogin()) throw 0;
     mountHeader('team');
-    fetchSite().then(function (s) { renderTeam(s.ranks, document.getElementById('content')); });
+
+    const contentEl = document.getElementById('content');
+    const badgeEl = document.getElementById('liveBadge');
+    let loading = false;
+
+    function setBadge(data) {
+        if (!data || !data.updatedAt) {
+            badgeEl.style.display = 'none';
+            return;
+        }
+        const when = formatLiveTime(data.updatedAt);
+        badgeEl.style.display = 'block';
+        badgeEl.innerHTML =
+            '<i class="fas fa-circle" style="color:#22c55e;font-size:0.5rem"></i> ' +
+            'Live van Discord · bijgewerkt ' + escapeHtml(when) +
+            (data.cached ? ' (cache)' : '');
+    }
+
+    async function loadTeam(silent) {
+        if (loading) return;
+        loading = true;
+        if (!silent) {
+            contentEl.innerHTML =
+                '<p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Team laden van Discord...</p>';
+        }
+        try {
+            const data = await fetchStaffTeam();
+            renderTeam(data.ranks, contentEl);
+            setBadge(data);
+        } catch (e) {
+            contentEl.innerHTML =
+                '<p class="staff-empty">' + escapeHtml(e.message) + '</p>';
+            badgeEl.style.display = 'none';
+        } finally {
+            loading = false;
+        }
+    }
+
+    loadTeam(false);
+    setInterval(function () { loadTeam(true); }, 90000);
 </script>
 </body>
 </html>

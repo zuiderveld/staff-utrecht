@@ -105,4 +105,101 @@ async function verifyAccessToken(accessToken) {
   };
 }
 
-module.exports = { exchangeCode, verifyAccessToken, getBeheerRoleIds };
+async function fetchAllGuildMembers() {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  if (!token || !guildId) {
+    throw new Error('DISCORD_BOT_TOKEN en DISCORD_GUILD_ID zijn verplicht in Vercel.');
+  }
+
+  const all = [];
+  let after = '0';
+
+  while (true) {
+    const url = `https://discord.com/api/v10/guilds/${guildId}/members?limit=1000&after=${after}`;
+    const res = await fetch(url, { headers: { Authorization: `Bot ${token}` } });
+    if (!res.ok) {
+      throw new Error(
+        'Kon serverleden niet ophalen. Bot op de server? Server Members Intent aan?'
+      );
+    }
+    const chunk = await res.json();
+    if (!chunk.length) break;
+    all.push(...chunk);
+    after = chunk[chunk.length - 1].user.id;
+    if (chunk.length < 1000) break;
+  }
+
+  return all;
+}
+
+function buildStaffTeam(members) {
+  const ranks = [...getRanks()].sort((a, b) => a.volgorde - b.volgorde);
+  const buckets = ranks.map((r) => ({
+    id: r.id,
+    naam: r.naam,
+    kleur: r.kleur,
+    volgorde: r.volgorde,
+    leden: [],
+  }));
+
+  for (const m of members) {
+    const roles = m.roles || [];
+    let assigned = null;
+    for (const r of ranks) {
+      if (r.discordRoleId && roles.includes(r.discordRoleId)) {
+        assigned = r;
+        break;
+      }
+    }
+    if (!assigned) continue;
+
+    const bucket = buckets.find((b) => b.id === assigned.id);
+    const user = m.user || {};
+    const display = (m.nick || user.global_name || user.username || 'Onbekend').trim();
+    const username = user.username ? `@${user.username}` : '';
+    let avatarUrl = null;
+    if (user.id && user.avatar) {
+      avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`;
+    } else if (user.id) {
+      const disc = (BigInt(user.id) >> 22n) % 6n;
+      avatarUrl = `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
+    }
+
+    bucket.leden.push({
+      naam: display,
+      discord: username,
+      avatarUrl,
+    });
+  }
+
+  for (const b of buckets) {
+    b.leden.sort((a, b) => a.naam.localeCompare(b.naam, 'nl'));
+  }
+
+  return {
+    ranks: buckets,
+    updatedAt: new Date().toISOString(),
+    source: 'discord',
+  };
+}
+
+let teamCache = { at: 0, data: null };
+const TEAM_CACHE_MS = 45_000;
+
+async function getStaffTeamLive() {
+  if (teamCache.data && Date.now() - teamCache.at < TEAM_CACHE_MS) {
+    return { ...teamCache.data, cached: true };
+  }
+  const members = await fetchAllGuildMembers();
+  const data = buildStaffTeam(members);
+  teamCache = { at: Date.now(), data };
+  return { ...data, cached: false };
+}
+
+module.exports = {
+  exchangeCode,
+  verifyAccessToken,
+  getBeheerRoleIds,
+  getStaffTeamLive,
+};
