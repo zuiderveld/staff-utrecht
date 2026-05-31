@@ -478,6 +478,39 @@ body {
     margin-bottom: 1rem;
 }
 
+.support-channel-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.support-channel-card-body {
+    flex: 1;
+    min-width: 12rem;
+}
+
+.support-channel-card-body strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.support-channel-card-body span {
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.support-call-panel {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
 .support-channel-btn {
     text-align: left;
     padding: 1rem 1.25rem;

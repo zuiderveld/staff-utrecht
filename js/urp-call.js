@@ -17,6 +17,11 @@ function URPCall(options) {
     this.muted = false;
     this.active = false;
     this.iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+    this._speaking = new Set();
+    this._localAnalyser = null;
+    this._vadTimer = null;
+    this._audioCtx = null;
+    this._lastRosterKey = '';
 }
 
 URPCall.prototype.api = async function (action, body) {
@@ -66,14 +71,21 @@ URPCall.prototype.renderShell = function () {
     };
 };
 
+URPCall.prototype.isPeerSpeaking = function (peerId) {
+    return this._speaking && this._speaking.has(peerId);
+};
+
 URPCall.prototype.updateParticipants = function (roster) {
     const el = this.container.querySelector('#urpCallParticipants');
+    if (!el) return;
+    const speaking = this._speaking || new Set();
     const local = renderParticipantTile({
         id: this.peerId,
         name: this.displayName + (this.isStaff ? ' (Staff)' : ''),
         avatarUrl: this.avatarUrl,
         local: true,
         muted: this.muted,
+        speaking: speaking.has(this.peerId),
     });
     const remote = (roster || [])
         .map(function (p) {
@@ -82,6 +94,7 @@ URPCall.prototype.updateParticipants = function (roster) {
                 name: p.name + (p.isStaff ? ' (Staff)' : ''),
                 avatarUrl: p.avatarUrl,
                 local: false,
+                speaking: speaking.has(p.id),
             });
         })
         .join('');
@@ -95,6 +108,7 @@ function renderParticipantTile(p) {
     return (
         '<div class="urp-call-tile' +
         (p.local ? ' urp-call-tile-local' : '') +
+        (p.speaking ? ' urp-call-tile-speaking' : '') +
         '" data-id="' +
         escapeHtml(p.id) +
         '">' +
@@ -102,10 +116,100 @@ function renderParticipantTile(p) {
         '<span class="urp-call-tile-name">' +
         escapeHtml(p.name) +
         '</span>' +
+        '<span class="urp-call-speaking-badge"><i class="fas fa-volume-high"></i> Spreekt</span>' +
         (p.muted ? '<span class="urp-call-muted-badge"><i class="fas fa-microphone-slash"></i></span>' : '') +
         '</div>'
     );
 }
+
+URPCall.prototype.getVolumeLevel = function (analyser) {
+    if (!analyser) return 0;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i];
+    return sum / data.length / 255;
+};
+
+URPCall.prototype.ensureAudioContext = function () {
+    if (this._audioCtx) return this._audioCtx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    this._audioCtx = new AC();
+    if (this._audioCtx.state === 'suspended') this._audioCtx.resume();
+    return this._audioCtx;
+};
+
+URPCall.prototype.attachStreamAnalyser = function (stream) {
+    const ac = this.ensureAudioContext();
+    if (!ac || !stream) return null;
+    try {
+        const source = ac.createMediaStreamSource(stream);
+        const analyser = ac.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.82;
+        source.connect(analyser);
+        return analyser;
+    } catch (e) {
+        return null;
+    }
+};
+
+URPCall.prototype.attachRemoteAnalyser = function (remoteId, stream) {
+    const conn = this.connections.get(remoteId);
+    if (!conn || !stream) return;
+    conn.analyser = this.attachStreamAnalyser(stream);
+};
+
+URPCall.prototype.startVoiceMonitoring = function () {
+    const self = this;
+    if (self._vadTimer) clearInterval(self._vadTimer);
+    self._speaking = new Set();
+    if (self.localStream) {
+        self._localAnalyser = self.attachStreamAnalyser(self.localStream);
+    }
+    self._vadTimer = setInterval(function () {
+        self.tickVoiceActivity();
+    }, 80);
+};
+
+URPCall.prototype.tickVoiceActivity = function () {
+    const threshold = 0.045;
+    const next = new Set();
+    if (this._localAnalyser && !this.muted) {
+        if (this.getVolumeLevel(this._localAnalyser) > threshold) next.add(this.peerId);
+    }
+    const self = this;
+    this.connections.forEach(function (conn, id) {
+        if (conn.analyser && self.getVolumeLevel(conn.analyser) > threshold) next.add(id);
+    });
+    this._speaking = next;
+    this.applySpeakingUI();
+};
+
+URPCall.prototype.applySpeakingUI = function () {
+    const el = this.container.querySelector('#urpCallParticipants');
+    if (!el) return;
+    const speaking = this._speaking || new Set();
+    el.querySelectorAll('.urp-call-tile').forEach(function (tile) {
+        const id = tile.getAttribute('data-id');
+        const isSpeaking = speaking.has(id);
+        tile.classList.toggle('urp-call-tile-speaking', isSpeaking);
+        const badge = tile.querySelector('.urp-call-speaking-badge');
+        if (badge) badge.hidden = !isSpeaking;
+    });
+};
+
+URPCall.prototype.stopVoiceMonitoring = function () {
+    if (this._vadTimer) clearInterval(this._vadTimer);
+    this._vadTimer = null;
+    this._localAnalyser = null;
+    this._speaking = new Set();
+    if (this._audioCtx) {
+        this._audioCtx.close().catch(function () {});
+        this._audioCtx = null;
+    }
+};
 
 URPCall.prototype.setStatus = function (text) {
     const el = this.container.querySelector('#urpCallStatus');
@@ -149,6 +253,7 @@ URPCall.prototype.createPeerConnection = function (remoteId) {
     audio.playsInline = true;
     pc.ontrack = function (e) {
         audio.srcObject = e.streams[0];
+        self.attachRemoteAnalyser(remoteId, e.streams[0]);
     };
     pc.onicecandidate = function (e) {
         if (e.candidate) self.sendSignal(remoteId, 'ice', e.candidate);
@@ -212,7 +317,17 @@ URPCall.prototype.syncRoster = async function (roster) {
         }
     });
     self._lastRoster = roster;
-    self.updateParticipants(roster);
+    const rosterKey = (roster || [])
+        .map(function (p) {
+            return p.id;
+        })
+        .sort()
+        .join(',');
+    if (rosterKey !== self._lastRosterKey) {
+        self._lastRosterKey = rosterKey;
+        self.updateParticipants(roster);
+        self.applySpeakingUI();
+    }
 };
 
 URPCall.prototype.poll = async function () {
@@ -250,6 +365,7 @@ URPCall.prototype.start = async function () {
         /* default stun */
     }
     this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    this.startVoiceMonitoring();
     await this.api('join', {
         peer: {
             id: this.peerId,
@@ -274,6 +390,7 @@ URPCall.prototype.stop = async function () {
         URPSounds.play('leave-call');
     }
     this.active = false;
+    this.stopVoiceMonitoring();
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.connections.forEach(function (c) {

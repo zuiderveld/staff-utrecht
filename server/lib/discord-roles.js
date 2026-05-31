@@ -4,7 +4,7 @@
 module.exports = {
   clientId: '1105558581304098867',
 
-  /** Burger — mag support wachtkamer gebruiken (join + call) */
+  /** Burger — mag speler-supportkanalen gebruiken */
   burgerRoleId: '1502448704911573113',
 
   /** Ranks van hoog naar laag (lage volgorde = hoogste rang) */

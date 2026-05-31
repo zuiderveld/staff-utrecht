@@ -47,8 +47,30 @@
 }
 
 .urp-call-tile-local {
-    border-color: rgba(34, 197, 94, 0.45);
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.08);
+    border-color: rgba(139, 92, 246, 0.4);
+}
+
+.urp-call-tile-speaking {
+    border-color: rgba(34, 197, 94, 0.9) !important;
+    box-shadow: 0 0 22px rgba(34, 197, 94, 0.4);
+}
+
+.urp-call-tile-speaking .urp-call-av-ph,
+.urp-call-tile-speaking img {
+    outline: 2px solid rgba(34, 197, 94, 0.75);
+    outline-offset: 2px;
+}
+
+.urp-call-speaking-badge {
+    display: block;
+    font-size: 0.65rem;
+    color: #86efac;
+    margin-top: 0.35rem;
+    font-weight: 600;
+}
+
+.urp-call-speaking-badge[hidden] {
+    display: none;
 }
 
 .urp-call-tile img,

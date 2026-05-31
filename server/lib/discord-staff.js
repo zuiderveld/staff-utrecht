@@ -24,7 +24,7 @@ function hasBurgerRole(userRoles) {
 function assertSupportAccess(member) {
   if (!member.canUseSupport) {
     throw new Error(
-      'Je hebt de Burger-rol nodig op de URP Discord om de wachtkamer te gebruiken. Zonder die rol kun je alleen de openbare lijst bekijken.'
+      'Je hebt de Burger-rol nodig op de URP Discord om speler-support te gebruiken. Staff kan inloggen met een staffrol.'
     );
   }
 }

@@ -14,21 +14,18 @@ function readChannelsConfig() {
         {
           id: 'speler-support',
           naam: 'Speler support',
-          beschrijving: 'Hulp van staff — wacht met muziek tot je wordt binnengehaald',
+          beschrijving: 'Bel met staff — klik zelf op Verbinden',
           callRoom: 'URP-Support-Spelers',
-          wachtkamer: true,
           staffOnly: false,
         },
         {
           id: 'moderator-overleg',
-          naam: 'Moderator / staff overleg',
-          beschrijving: 'Alleen staff — direct bellen',
+          naam: 'Moderator overleg',
+          beschrijving: 'Alleen staff — handmatig verbinden',
           callRoom: 'URP-Support-Moderators',
-          wachtkamer: false,
           staffOnly: true,
         },
       ],
-      waitingMusic: '/assets/audio/waiting-ambient.mp3',
     };
   }
 }

@@ -1,139 +1,89 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URP | Support & wachtkamer</title>
-    <link rel="icon" type="image/png" href="/assets/favicon.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="/css/staff.css">
-    <link rel="stylesheet" href="/css/urp-call.css">
-</head>
-<body>
-<div class="staff-bg"></div>
-<div id="siteHeader"></div>
-
-<section id="publicWaitingSection" class="staff-container" style="padding-top:1.5rem;padding-bottom:0">
-    <div class="staff-card support-public-wait">
-        <div class="staff-card-title">
-            <i class="fas fa-eye"></i> Openbare wachtkamer
-            <span class="support-open-badge">Live</span>
-        </div>
-        <p class="staff-support-desc" style="margin-bottom:1rem">
-            <strong>Iedereen</strong> kan zien wie er wacht (ook zonder in te loggen).
-            Om zelf in de rij te staan: log in met Discord en heb de <strong>Burger</strong>-rol op de server.
-        </p>
-        <div id="publicQueueList" class="support-queue-list">
-            <p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden…</p>
-        </div>
-    </div>
-</section>
-
-<div id="supportLogin" class="login-wrap">
-    <div class="login-box" style="max-width:440px;margin:4rem auto">
-        <img src="/assets/favicon.png" alt="URP" width="80">
-        <h1 style="margin-top:1rem">URP <span style="color:#a78bfa">Support</span></h1>
-        <p style="color:#9ca3af;font-size:0.9rem">
-            Log in met <strong>Discord</strong> — we zien wie je bent (naam + profiel).
-            Daarna wachtkamer met muziek of staff haalt je binnen.
-        </p>
-        <button type="button" class="btn-discord" id="btnSupportDiscord" style="width:100%;padding:1rem;border:none;border-radius:50px;background:#5865f2;color:#fff;font-weight:700;cursor:pointer">
-            <i class="fab fa-discord"></i> Inloggen met Discord
-        </button>
-        <p class="login-error" id="supportLoginError" style="color:#fca5a5;margin-top:1rem"></p>
-        <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem">
-            URP Discord-lid · voor de wachtkamer ook de <strong>Burger</strong>-rol.
-        </p>
-    </div>
-</div>
-
-<main id="supportMain" class="staff-container staff-support-page" hidden>
-    <div id="supportGuestBar" class="support-guest-bar" hidden>
-        <img id="guestAvatar" src="" alt="" class="support-user-avatar">
-        <div>
-            <strong id="guestDisplayName"></strong>
-            <span style="display:block;font-size:0.8rem;color:#9ca3af">Ingelogd via Discord</span>
-        </div>
-        <button type="button" class="staff-btn" onclick="logout()">Uitloggen</button>
-    </div>
-
-    <div class="staff-hero">
-        <h2>Support <span>wachtkamer</span></h2>
-        <p>URP Call (eigen bellen) · wachtkamer met muziek · Discord-identiteit</p>
-    </div>
-
-    <!-- Staff / moderator paneel -->
-    <div id="staffPanel" class="staff-card support-staff-panel" hidden>
-        <div class="staff-card-title"><i class="fas fa-user-shield"></i> Moderator / staff paneel</div>
-        <p class="staff-support-desc">
-            Zie wie in de wachtkamer zit (Discord-naam + foto). Klik <strong>Binnenhalen</strong> om iemand
-            naar het gesprek te slepen — pas dan kan diegene praten.
-        </p>
-        <div id="staffQueueList" class="support-queue-list"></div>
-        <hr style="border-color:rgba(139,92,246,0.2);margin:1.5rem 0">
-        <div class="staff-card-title"><i class="fas fa-headset"></i> Staff belruimte</div>
-        <div class="staff-support-toolbar">
-            <select id="staffChannelSelect" class="support-select"></select>
-            <button type="button" class="staff-btn staff-btn-primary" id="btnStaffJoinCall">
-                <i class="fas fa-phone"></i> Join staff-kanaal
-            </button>
-        </div>
-        <div id="staffCallWrap" class="staff-call-wrap" hidden>
-            <div id="urpCallStaff"></div>
-        </div>
-    </div>
-
-    <div id="supportNoBurger" class="staff-card" hidden style="border-color:rgba(251,191,36,0.35)">
-        <div class="staff-card-title"><i class="fas fa-id-card"></i> Geen Burger-rol</div>
-        <p class="staff-support-desc">
-            Je bent ingelogd, maar je hebt op Discord nog geen <strong>Burger</strong>-rol.
-            Je kunt de openbare wachtkamer hierboven wel bekijken; om zelf support te vragen moet je die rol hebben.
-        </p>
-    </div>
-
-    <!-- Speler / bezoeker wachtkamer -->
-    <div id="guestArea" class="staff-card">
-        <div class="staff-card-title"><i class="fas fa-hourglass-half"></i> Wachtkamer</div>
-        <p id="guestPickHint" class="staff-support-desc">
-            Kies een supportkanaal. Je hoort <strong>muziek</strong> en kunt <strong>niet praten</strong> tot staff je binnenhaalt.
-        </p>
-        <div id="channelPicker" class="support-channel-picker"></div>
-
-        <div id="guestWaitingView" hidden>
-            <div class="support-waiting-hero">
-                <div class="support-waiting-pulse"><i class="fas fa-music"></i></div>
-                <h3>Je wacht op staff…</h3>
-                <p>Kanaal: <strong id="waitChannel"></strong> · positie <strong id="waitPosition"></strong></p>
-                <p id="waitHint" class="staff-support-hint"></p>
-            </div>
-            <div id="waitUserCard"></div>
-            <audio id="waitingMusic" loop preload="auto"></audio>
-            <button type="button" class="staff-btn staff-btn-danger" id="btnLeaveWait" style="margin-top:1rem">
-                <i class="fas fa-door-open"></i> Wachtkamer verlaten
-            </button>
-        </div>
-
-        <div id="guestAdmittedView" hidden>
-            <p class="staff-support-status ok" style="display:block">
-                <i class="fas fa-check-circle"></i> Je bent binnengehaald — je kunt nu praten in <strong id="admittedChannelName"></strong>
-            </p>
-            <div class="staff-call-wrap">
-                <div id="urpCallGuest"></div>
-            </div>
-        </div>
-    </div>
-
-    <p class="staff-support-hint">
-        Kanalen aanpassen: <code>data/support-channels.json</code> · wachtrij vereist Vercel Blob.
-        <a href="/dashboard.html" style="color:#a78bfa" id="linkStaffPortal">Staff portaal</a>
-    </p>
-</main>
-
-<footer class="staff-footer">© Utrecht Roleplay</footer>
-<script src="/js/config.js"></script>
-<script src="/js/app.js"></script>
-<script src="/js/urp-sounds.js"></script>
-<script src="/js/urp-call.js"></script>
-<script src="/js/support-page.js"></script>
-</body>
-</html>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URP | Support</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/staff.css">
+    <link rel="stylesheet" href="/css/urp-call.css">
+</head>
+<body>
+<div class="staff-bg"></div>
+<div id="siteHeader"></div>
+
+<div id="supportLogin" class="login-wrap">
+    <div class="login-box" style="max-width:440px;margin:4rem auto">
+        <img src="/assets/favicon.png" alt="URP" width="80">
+        <h1 style="margin-top:1rem">URP <span style="color:#a78bfa">Support</span></h1>
+        <p style="color:#9ca3af;font-size:0.9rem">
+            Log in met <strong>Discord</strong> — kies daarna een supportkanaal en klik zelf op <strong>Verbinden</strong>.
+        </p>
+        <button type="button" class="btn-discord" id="btnSupportDiscord" style="width:100%;padding:1rem;border:none;border-radius:50px;background:#5865f2;color:#fff;font-weight:700;cursor:pointer">
+            <i class="fab fa-discord"></i> Inloggen met Discord
+        </button>
+        <p class="login-error" id="supportLoginError" style="color:#fca5a5;margin-top:1rem"></p>
+        <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem">
+            URP Discord-lid · spelers: <strong>Burger</strong>-rol · staff: staffrol
+        </p>
+    </div>
+</div>
+
+<main id="supportMain" class="staff-container staff-support-page" hidden>
+    <div id="supportGuestBar" class="support-guest-bar" hidden>
+        <img id="guestAvatar" src="" alt="" class="support-user-avatar">
+        <div>
+            <strong id="guestDisplayName"></strong>
+            <span style="display:block;font-size:0.8rem;color:#9ca3af">Ingelogd via Discord</span>
+        </div>
+        <button type="button" class="staff-btn" onclick="logout()">Uitloggen</button>
+    </div>
+
+    <div class="staff-hero">
+        <h2>Support <span>kanalen</span></h2>
+        <p>URP Call · je verbindt zelf — er start geen gesprek automatisch</p>
+    </div>
+
+    <div id="supportNoBurger" class="staff-card" hidden style="border-color:rgba(251,191,36,0.35)">
+        <div class="staff-card-title"><i class="fas fa-id-card"></i> Geen Burger-rol</div>
+        <p class="staff-support-desc">
+            Je bent ingelogd, maar je hebt op Discord nog geen <strong>Burger</strong>-rol.
+            Met die rol kun je speler-supportkanalen gebruiken. Staff kan altijd inloggen met een staffrol.
+        </p>
+    </div>
+
+    <div id="guestArea" class="staff-card">
+        <div class="staff-card-title"><i class="fas fa-headset"></i> Supportkanalen</div>
+        <p id="guestPickHint" class="staff-support-desc">
+            Kies een kanaal en klik <strong>Verbinden</strong> wanneer je klaar bent. Tot die tijd ben je niet in de call.
+        </p>
+        <div id="channelPicker" class="support-channel-picker"></div>
+
+        <div id="callPanel" class="support-call-panel" hidden>
+            <p class="staff-support-status ok" style="display:block;margin-bottom:1rem">
+                <i class="fas fa-link"></i> Verbonden met <strong id="connectedChannelName"></strong>
+            </p>
+            <div class="staff-call-wrap">
+                <div id="urpCallGuest"></div>
+            </div>
+            <button type="button" class="staff-btn staff-btn-danger" id="btnDisconnect" style="margin-top:1rem">
+                <i class="fas fa-phone-slash"></i> Verbinding verbreken
+            </button>
+        </div>
+    </div>
+
+    <p class="staff-support-hint">
+        Kanalen: <code>data/support-channels.json</code>
+        <a href="/dashboard.html" style="color:#a78bfa" id="linkStaffPortal">Staff portaal</a>
+    </p>
+</main>
+
+<footer class="staff-footer">© Utrecht Roleplay</footer>
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/urp-sounds.js"></script>
+<script src="/js/urp-call.js"></script>
+<script src="/js/support-page.js"></script>
+</body>
+</html>

@@ -110,7 +110,7 @@ async function discordAuthWithCode(code) {
     return data;
 }
 
-/** Support / wachtkamer — URP Discord-lid (wachtkamer: Burger-rol of staff) */
+/** Support — URP Discord-lid (spelers: Burger-rol, staff: staffrol) */
 async function discordMemberAuthWithCode(code, redirectUri) {
     const res = await fetch(SITE_API + '/api/discord-auth', {
         method: 'POST',
@@ -125,17 +125,6 @@ async function discordMemberAuthWithCode(code, redirectUri) {
 
 function supportRedirectUri() {
     return window.location.origin + '/support.html';
-}
-
-async function supportAdmit(discordIdTarget) {
-    const res = await fetch(SITE_API + '/api/support-admit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: accessToken(), discordId: discordIdTarget }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Binnenhalen mislukt');
-    return data;
 }
 
 async function fetchSite() {
