@@ -221,17 +221,6 @@ function renderRegels(regels, container) {
         .join('');
 }
 
-async function fetchSupportRoom() {
-    const res = await fetch(SITE_API + '/api/support-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: accessToken() }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Support laden mislukt');
-    return data;
-}
-
 async function fetchDiscordRoleNames() {
     const res = await fetch(SITE_API + '/api/discord-role-names', {
         method: 'POST',

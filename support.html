@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="/css/staff.css">
+    <link rel="stylesheet" href="/css/urp-call.css">
 </head>
 <body>
 <div class="staff-bg"></div>
@@ -42,7 +43,7 @@
 
     <div class="staff-hero">
         <h2>Support <span>wachtkamer</span></h2>
-        <p>Custom bellen op de site · Discord-identiteit · staff haalt je binnen</p>
+        <p>URP Call (eigen bellen) · wachtkamer met muziek · Discord-identiteit</p>
     </div>
 
     <!-- Staff / moderator paneel -->
@@ -61,8 +62,8 @@
                 <i class="fas fa-phone"></i> Join staff-kanaal
             </button>
         </div>
-        <div id="staffJitsiWrap" class="staff-jitsi-wrap" hidden>
-            <iframe id="jitsiFrameStaff" title="Staff gesprek" allow="camera; microphone; fullscreen; autoplay"></iframe>
+        <div id="staffCallWrap" class="staff-call-wrap" hidden>
+            <div id="urpCallStaff"></div>
         </div>
     </div>
 
@@ -92,8 +93,8 @@
             <p class="staff-support-status ok" style="display:block">
                 <i class="fas fa-check-circle"></i> Je bent binnengehaald — je kunt nu praten in <strong id="admittedChannelName"></strong>
             </p>
-            <div class="staff-jitsi-wrap">
-                <iframe id="jitsiFrameGuest" title="Support gesprek" allow="camera; microphone; fullscreen; autoplay"></iframe>
+            <div class="staff-call-wrap">
+                <div id="urpCallGuest"></div>
             </div>
         </div>
     </div>
@@ -107,6 +108,7 @@
 <footer class="staff-footer">© Utrecht Roleplay</footer>
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/urp-call.js"></script>
 <script src="/js/support-page.js"></script>
 <script>
     document.getElementById('linkStaffPortal').hidden = !isStaff();

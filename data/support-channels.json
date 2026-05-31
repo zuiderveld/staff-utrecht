@@ -5,7 +5,7 @@
       "id": "speler-support",
       "naam": "Speler support",
       "beschrijving": "Wacht op staff — je hoort muziek, praten kan pas na binnenhalen",
-      "jitsiRoom": "URP-Support-Spelers",
+      "callRoom": "URP-Support-Spelers",
       "wachtkamer": true,
       "staffOnly": false
     },
@@ -13,7 +13,7 @@
       "id": "moderator-overleg",
       "naam": "Moderator overleg",
       "beschrijving": "Openbare staff/moderator call — geen wachtkamer",
-      "jitsiRoom": "URP-Support-Moderators",
+      "callRoom": "URP-Support-Moderators",
       "wachtkamer": false,
       "staffOnly": true
     }

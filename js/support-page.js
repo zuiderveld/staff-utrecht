@@ -1,16 +1,7 @@
-/* Support: wachtkamer + staff binnenhalen — vereist support.html + app.js */
+/* Support: wachtkamer + URP Call (custom WebRTC) */
 
-function buildJitsiUrl(room, displayName, password) {
-    const server = (window.JITSI_SERVER || 'meet.jit.si').replace(/^https?:\/\//, '');
-    let url = 'https://' + server + '/' + encodeURIComponent(room);
-    const hash = [
-        'config.prejoinPageEnabled=false',
-        'config.startWithAudioMuted=false',
-        'config.startWithVideoMuted=true',
-        'userInfo.displayName=' + encodeURIComponent(displayName || userName()),
-    ];
-    if (password) hash.push('config.password=' + encodeURIComponent(password));
-    return url + '#' + hash.join('&');
+function getCallRoomId(channel) {
+    return channel?.callRoom || channel?.jitsiRoom || channel?.id || 'URP-Support';
 }
 
 function renderDiscordUserCard(entry, extraHtml) {
@@ -21,7 +12,7 @@ function renderDiscordUserCard(entry, extraHtml) {
         '<div class="support-user-card">' +
         av +
         '<div class="support-user-meta">' +
-        '<strong>' + escapeHtml(entry.username || 'Onbekend') + '</strong>' +
+        '<strong>' + escapeHtml(entry.username || entry.naam || 'Onbekend') + '</strong>' +
         '<span>@' + escapeHtml(entry.discordUsername || entry.discordId || '') + '</span>' +
         '<code class="support-user-id">ID: ' + escapeHtml(entry.discordId || '') + '</code>' +
         (extraHtml || '') +
@@ -35,8 +26,7 @@ function startWaitingMusic(src) {
     audio.volume = 0.35;
     audio.src = src || '/assets/audio/waiting-ambient.mp3';
     audio.play().catch(function () {
-        audio.src =
-            'https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3';
+        audio.src = 'https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3';
         audio.play().catch(function () {});
     });
 }
@@ -103,15 +93,17 @@ function getDiscordAuthUrlForSupport() {
 
 let pollTimer = null;
 let supportConfig = null;
+let guestCallStarted = false;
 
 async function refreshSupportUI() {
-    const cfg = await fetch(SITE_API + '/api/support-queue?action=config&accessToken=' + encodeURIComponent(accessToken()));
+    const cfg = await fetch(
+        SITE_API + '/api/support-queue?action=config&accessToken=' + encodeURIComponent(accessToken())
+    );
     supportConfig = await cfg.json();
     if (!cfg.ok) throw new Error(supportConfig.error || 'Config laden mislukt');
 
     document.getElementById('waitingMusic').src =
         supportConfig.waitingMusic || '/assets/audio/waiting-ambient.mp3';
-    window.JITSI_PASSWORD = supportConfig.jitsiPassword || null;
 
     if (supportConfig.isStaff) renderStaffPanel();
     else document.getElementById('staffPanel').hidden = true;
@@ -155,34 +147,31 @@ function renderChannelPicker(channels) {
 }
 
 async function joinWaitingRoom(channelId) {
-    try {
-        const res = await fetch(SITE_API + '/api/support-queue', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                accessToken: accessToken(),
-                action: 'join',
-                channelId: channelId,
-            }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Join mislukt');
-        await pollSupportStatus();
-    } catch (e) {
-        alert(e.message);
-    }
+    guestCallStarted = false;
+    stopURPCall('urpCallGuest');
+    const res = await fetch(SITE_API + '/api/support-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            accessToken: accessToken(),
+            action: 'join',
+            channelId: channelId,
+        }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Join mislukt');
+    await pollSupportStatus();
 }
 
 async function leaveWaitingRoom() {
-    try {
-        await fetch(SITE_API + '/api/support-queue?action=leave&accessToken=' + encodeURIComponent(accessToken()), {
-            method: 'DELETE',
-        });
-        stopWaitingMusic();
-        await pollSupportStatus();
-    } catch (e) {
-        alert(e.message);
-    }
+    stopURPCall('urpCallGuest');
+    guestCallStarted = false;
+    await fetch(
+        SITE_API + '/api/support-queue?action=leave&accessToken=' + encodeURIComponent(accessToken()),
+        { method: 'DELETE' }
+    );
+    stopWaitingMusic();
+    await pollSupportStatus();
 }
 
 async function pollSupportStatus() {
@@ -197,6 +186,8 @@ async function pollSupportStatus() {
     const picker = document.getElementById('channelPicker');
 
     if (data.status === 'waiting') {
+        guestCallStarted = false;
+        stopURPCall('urpCallGuest');
         guestView.hidden = false;
         admittedView.hidden = true;
         picker.hidden = true;
@@ -216,12 +207,16 @@ async function pollSupportStatus() {
         guestView.hidden = true;
         admittedView.hidden = false;
         picker.hidden = true;
-        const room = data.jitsiRoom || data.channel?.jitsiRoom;
-        const pass = window.JITSI_PASSWORD || null;
-        document.getElementById('jitsiFrameGuest').src = buildJitsiUrl(room, userName(), pass);
         document.getElementById('admittedChannelName').textContent = data.channel?.naam || '';
+        const roomId = getCallRoomId(data.channel);
+        if (!guestCallStarted) {
+            guestCallStarted = true;
+            startURPCall('urpCallGuest', roomId);
+        }
     } else {
         stopWaitingMusic();
+        guestCallStarted = false;
+        stopURPCall('urpCallGuest');
         guestView.hidden = true;
         admittedView.hidden = true;
         picker.hidden = false;
@@ -256,14 +251,16 @@ async function refreshStaffQueue() {
                     '<span class="support-queue-meta"><i class="fas fa-clock"></i> ' +
                         escapeHtml(entry.channelNaam || '') +
                         ' · sinds ' +
-                        new Date(entry.joinedAt).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) +
+                        new Date(entry.joinedAt).toLocaleTimeString('nl-NL', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }) +
                         '</span>'
                 ) +
                 '<div class="support-queue-actions">' +
-                '<button type="button" class="staff-btn staff-btn-primary btn-admit" title="Binnenhalen naar gesprek">' +
+                '<button type="button" class="staff-btn staff-btn-primary btn-admit">' +
                 '<i class="fas fa-hand-point-right"></i> Binnenhalen</button>' +
-                '<button type="button" class="staff-btn btn-kick-queue" title="Uit wachtrij">' +
-                '<i class="fas fa-times"></i></button></div></div>'
+                '<button type="button" class="staff-btn btn-kick-queue"><i class="fas fa-times"></i></button></div></div>'
             );
         })
         .join('');
@@ -272,12 +269,12 @@ async function refreshStaffQueue() {
         btn.addEventListener('click', async function () {
             const id = btn.closest('[data-discord-id]').dataset.discordId;
             try {
-                await supportAdmit(id);
+                const admitRes = await supportAdmit(id);
                 await pollSupportStatus();
-                const ch = (supportConfig.channels || []).find(function (c) {
-                    return c.id === 'speler-support' || c.wachtkamer;
+                const ch = admitRes.channel || (supportConfig.channels || []).find(function (c) {
+                    return c.id === 'speler-support';
                 });
-                joinStaffCall(ch ? ch.id : document.getElementById('staffChannelSelect').value);
+                joinStaffCall(ch);
             } catch (e) {
                 alert(e.message);
             }
@@ -293,34 +290,33 @@ async function refreshStaffQueue() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accessToken: accessToken(), action: 'kick', discordId: id }),
             });
-            const data = await res.json();
-            if (!res.ok) alert(data.error || 'Mislukt');
+            const d = await res.json();
+            if (!res.ok) alert(d.error || 'Mislukt');
             await refreshStaffQueue();
         });
     });
 }
 
-function joinStaffCall(channelId) {
-    const ch = (supportConfig?.channels || []).find(function (c) {
-        return c.id === channelId;
-    });
-    if (!ch) return;
-    const pass = window.JITSI_PASSWORD || null;
-    document.getElementById('jitsiFrameStaff').src = buildJitsiUrl(ch.jitsiRoom, userName() + ' (Staff)', pass);
-    document.getElementById('staffJitsiWrap').hidden = false;
+function joinStaffCall(channel) {
+    if (!channel) return;
+    const roomId = getCallRoomId(channel);
+    document.getElementById('staffCallWrap').hidden = false;
+    startURPCall('urpCallStaff', roomId);
 }
 
 async function renderStaffPanel() {
     document.getElementById('staffPanel').hidden = false;
     const sel = document.getElementById('staffChannelSelect');
-    const staffChannels = supportConfig?.channels || [];
-    sel.innerHTML = staffChannels
+    sel.innerHTML = (supportConfig?.channels || [])
         .map(function (c) {
             return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.naam) + '</option>';
         })
         .join('');
     document.getElementById('btnStaffJoinCall').onclick = function () {
-        joinStaffCall(sel.value);
+        const ch = (supportConfig.channels || []).find(function (c) {
+            return c.id === sel.value;
+        });
+        joinStaffCall(ch);
     };
     await refreshStaffQueue();
 }

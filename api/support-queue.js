@@ -32,7 +32,7 @@ module.exports = async function handler(req, res) {
         waitingMusic: cfg.waitingMusic,
         isStaff: member.isStaff,
         isModerator: member.isStaff,
-        jitsiPassword: process.env.JITSI_ROOM_PASSWORD || null,
+        callBrand: 'URP Call',
         user: {
           username: member.username,
           discordId: member.discordId,
@@ -115,7 +115,7 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({
           status: 'admitted',
           channel,
-          jitsiRoom: channel?.jitsiRoom,
+          callRoom: channel?.callRoom || channel?.jitsiRoom,
           admittedAt: admitted.admittedAt,
         });
       }

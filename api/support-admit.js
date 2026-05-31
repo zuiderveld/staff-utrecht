@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
       ok: true,
       entry: admittedEntry,
       channel,
-      jitsiRoom: channel?.jitsiRoom,
+      callRoom: channel?.callRoom || channel?.jitsiRoom,
     });
   } catch (err) {
     console.error('support-admit:', err);
