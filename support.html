@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URP Staff | Support</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/staff.css">
+</head>
+<body>
+<div class="staff-bg"></div>
+<div id="siteHeader"></div>
+<main class="staff-container staff-support-page">
+    <div class="staff-hero">
+        <h2>Staff <span>Support</span></h2>
+        <p>Bel met staff — Discord of direct in je browser</p>
+    </div>
+
+    <div class="staff-support-tabs">
+        <button type="button" class="staff-support-tab active" data-mode="discord">
+            <i class="fab fa-discord"></i> Discord bellen
+        </button>
+        <button type="button" class="staff-support-tab" data-mode="browser">
+            <i class="fas fa-headset"></i> Bellen op website
+        </button>
+    </div>
+
+    <div id="panelDiscord" class="staff-support-panel active staff-card">
+        <div class="staff-card-title"><i class="fab fa-discord"></i> Discord supportkanaal</div>
+        <p class="staff-support-desc">
+            De beste kwaliteit voor staff-overleg: join het vaste <strong>support spraakkanaal</strong> op de URP Discord.
+        </p>
+        <div id="discordActions">
+            <p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden...</p>
+        </div>
+        <p class="staff-support-hint">
+            Geen link? Zet <code>DISCORD_SUPPORT_VOICE_URL</code> in Vercel (invite-link of kanaallink).
+        </p>
+    </div>
+
+    <div id="panelBrowser" class="staff-support-panel staff-card">
+        <div class="staff-card-title"><i class="fas fa-video"></i> Staff belruimte (browser)</div>
+        <p class="staff-support-desc">
+            Alleen voor ingelogde staff. Sta microfoon/camera toe als je browser het vraagt.
+        </p>
+        <div class="staff-support-toolbar">
+            <button type="button" class="staff-btn staff-btn-primary" id="btnJoinCall">
+                <i class="fas fa-phone"></i> Deelnemen aan gesprek
+            </button>
+            <button type="button" class="staff-btn" id="btnLeaveCall" style="display:none">
+                <i class="fas fa-phone-slash"></i> Gesprek verlaten
+            </button>
+        </div>
+        <div id="jitsiWrap" class="staff-jitsi-wrap" hidden>
+            <iframe id="jitsiFrame" title="Staff belruimte" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
+        </div>
+        <p class="staff-support-hint" id="browserHint">
+            Klik op <strong>Deelnemen</strong> om de belruimte te openen. Deel de link niet buiten staff.
+        </p>
+    </div>
+</main>
+<footer class="staff-footer">© Utrecht Roleplay · Staff Portaal</footer>
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+<script>
+    if (!requireLogin()) throw 0;
+    mountHeader('support');
+
+    let supportConfig = null;
+
+    const tabs = document.querySelectorAll('.staff-support-tab');
+    const panelDiscord = document.getElementById('panelDiscord');
+    const panelBrowser = document.getElementById('panelBrowser');
+
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            tabs.forEach(function (t) { t.classList.remove('active'); });
+            tab.classList.add('active');
+            const discord = tab.dataset.mode === 'discord';
+            panelDiscord.classList.toggle('active', discord);
+            panelBrowser.classList.toggle('active', !discord);
+        });
+    });
+
+    function renderDiscordPanel() {
+        const el = document.getElementById('discordActions');
+        const url = supportConfig && supportConfig.discordVoiceUrl;
+        if (!url) {
+            el.innerHTML =
+                '<p class="staff-empty">Discord supportlink is nog niet ingesteld door beheer.</p>' +
+                '<p class="staff-support-desc">Vraag beheer om <code>DISCORD_SUPPORT_VOICE_URL</code> in Vercel te zetten (bijv. invite naar jullie support voice).</p>';
+            return;
+        }
+        el.innerHTML =
+            '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" class="staff-support-discord-btn">' +
+            '<i class="fab fa-discord"></i> Join support spraakkanaal</a>';
+    }
+
+    function buildJitsiUrl(cfg) {
+        const room = encodeURIComponent(cfg.room);
+        const server = (cfg.jitsiServer || 'meet.jit.si').replace(/^https?:\/\//, '');
+        let url = 'https://' + server + '/' + room;
+        const hash = [
+            'config.prejoinPageEnabled=true',
+            'config.startWithAudioMuted=false',
+            'config.startWithVideoMuted=true',
+            'interfaceConfig.SHOW_JITSI_WATERMARK=false',
+            'userInfo.displayName=' + encodeURIComponent(cfg.displayName || userName()),
+        ];
+        if (cfg.password) {
+            hash.push('config.password=' + encodeURIComponent(cfg.password));
+        }
+        url += '#' + hash.join('&');
+        return url;
+    }
+
+    document.getElementById('btnJoinCall').addEventListener('click', function () {
+        if (!supportConfig) {
+            alert('Supportconfig nog niet geladen. Vernieuw de pagina.');
+            return;
+        }
+        const wrap = document.getElementById('jitsiWrap');
+        const frame = document.getElementById('jitsiFrame');
+        frame.src = buildJitsiUrl(supportConfig);
+        wrap.hidden = false;
+        document.getElementById('btnJoinCall').style.display = 'none';
+        document.getElementById('btnLeaveCall').style.display = 'inline-flex';
+        document.getElementById('browserHint').textContent =
+            'Je zit in de staff-belruimte. Andere staff kan op dezelfde knop drukken om mee te doen.';
+    });
+
+    document.getElementById('btnLeaveCall').addEventListener('click', function () {
+        const frame = document.getElementById('jitsiFrame');
+        frame.src = 'about:blank';
+        document.getElementById('jitsiWrap').hidden = true;
+        document.getElementById('btnJoinCall').style.display = 'inline-flex';
+        document.getElementById('btnLeaveCall').style.display = 'none';
+        document.getElementById('browserHint').textContent =
+            'Klik op Deelnemen om de belruimte te openen. Deel de link niet buiten staff.';
+    });
+
+    fetchSupportRoom()
+        .then(function (cfg) {
+            supportConfig = cfg;
+            renderDiscordPanel();
+        })
+        .catch(function (e) {
+            document.getElementById('discordActions').innerHTML =
+                '<p class="staff-empty">' + escapeHtml(e.message) + '</p>';
+        });
+</script>
+</body>
+</html>

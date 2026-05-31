@@ -124,6 +124,7 @@ function renderHeader(active) {
         '<a href="/regels.html"' + (active === 'regels' ? ' class="active"' : '') + '>Regels</a>' +
         '<a href="/functies.html"' + (active === 'functies' ? ' class="active"' : '') + '>Staff functies</a>' +
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
+        '<a href="/support.html"' + (active === 'support' ? ' class="active"' : '') + '>Support</a>' +
         '</nav>' +
         '<div class="staff-actions">' +
         '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + rankLabel + '</span>' +
@@ -157,6 +158,17 @@ function renderRegels(regels, container) {
             );
         })
         .join('');
+}
+
+async function fetchSupportRoom() {
+    const res = await fetch(SITE_API + '/api/support-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Support laden mislukt');
+    return data;
 }
 
 async function fetchDiscordRoleNames() {
