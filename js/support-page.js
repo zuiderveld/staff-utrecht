@@ -92,6 +92,14 @@ function stopWaitingMusic() {
     }
 }
 
+function applySupportAccessUI() {
+    const noBurger = document.getElementById('supportNoBurger');
+    const guestArea = document.getElementById('guestArea');
+    const allowed = isStaff() || canUseSupport();
+    if (noBurger) noBurger.hidden = allowed;
+    if (guestArea) guestArea.hidden = !allowed;
+}
+
 async function initSupportPage() {
     const params = new URLSearchParams(location.search);
     const loginBox = document.getElementById('supportLogin');
@@ -108,6 +116,7 @@ async function initSupportPage() {
         if (avatarUrl()) gav.src = avatarUrl();
         else gav.style.display = 'none';
         await refreshSupportUI();
+        applySupportAccessUI();
     }
 
     if (params.get('code')) {
@@ -160,6 +169,20 @@ async function refreshSupportUI() {
 
     if (supportConfig.isStaff) renderStaffPanel();
     else document.getElementById('staffPanel').hidden = true;
+
+    if (typeof supportConfig.canUseSupport === 'boolean') {
+        sessionStorage.setItem('urpStaffCanSupport', supportConfig.canUseSupport ? 'true' : 'false');
+    }
+    if (typeof supportConfig.isBurger === 'boolean') {
+        sessionStorage.setItem('urpStaffIsBurger', supportConfig.isBurger ? 'true' : 'false');
+    }
+    applySupportAccessUI();
+
+    if (!supportConfig.canUseSupport && !supportConfig.isStaff) {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+        return;
+    }
 
     renderChannelPicker(supportConfig.channels);
     await pollSupportStatus();

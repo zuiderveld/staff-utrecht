@@ -21,7 +21,7 @@
         </div>
         <p class="staff-support-desc" style="margin-bottom:1rem">
             <strong>Iedereen</strong> kan zien wie er wacht (ook zonder in te loggen).
-            Om zelf in de rij te staan: log in met Discord.
+            Om zelf in de rij te staan: log in met Discord en heb de <strong>Burger</strong>-rol op de server.
         </p>
         <div id="publicQueueList" class="support-queue-list">
             <p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden…</p>
@@ -42,7 +42,7 @@
         </button>
         <p class="login-error" id="supportLoginError" style="color:#fca5a5;margin-top:1rem"></p>
         <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem">
-            Je moet lid zijn van de URP Discord-server.
+            URP Discord-lid · voor de wachtkamer ook de <strong>Burger</strong>-rol.
         </p>
     </div>
 </div>
@@ -81,6 +81,14 @@
         <div id="staffCallWrap" class="staff-call-wrap" hidden>
             <div id="urpCallStaff"></div>
         </div>
+    </div>
+
+    <div id="supportNoBurger" class="staff-card" hidden style="border-color:rgba(251,191,36,0.35)">
+        <div class="staff-card-title"><i class="fas fa-id-card"></i> Geen Burger-rol</div>
+        <p class="staff-support-desc">
+            Je bent ingelogd, maar je hebt op Discord nog geen <strong>Burger</strong>-rol.
+            Je kunt de openbare wachtkamer hierboven wel bekijken; om zelf support te vragen moet je die rol hebben.
+        </p>
     </div>
 
     <!-- Speler / bezoeker wachtkamer -->

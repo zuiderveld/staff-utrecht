@@ -22,6 +22,14 @@ function isStaff() {
     return sessionStorage.getItem('urpStaffIsStaff') === 'true';
 }
 
+function isBurger() {
+    return sessionStorage.getItem('urpStaffIsBurger') === 'true';
+}
+
+function canUseSupport() {
+    return isStaff() || sessionStorage.getItem('urpStaffCanSupport') === 'true';
+}
+
 function discordId() {
     return sessionStorage.getItem('urpStaffDiscordId') || '';
 }
@@ -39,6 +47,8 @@ function setSession(data) {
     sessionStorage.setItem('urpStaffAccessToken', data.accessToken || '');
     sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
     sessionStorage.setItem('urpStaffIsStaff', data.isStaff ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffIsBurger', data.isBurger ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffCanSupport', data.canUseSupport ? 'true' : 'false');
     if (data.discordId) sessionStorage.setItem('urpStaffDiscordId', data.discordId);
     else sessionStorage.removeItem('urpStaffDiscordId');
     if (data.avatarUrl) sessionStorage.setItem('urpStaffAvatarUrl', data.avatarUrl);
@@ -55,6 +65,8 @@ function logout() {
     sessionStorage.removeItem('urpStaffBeheer');
     sessionStorage.removeItem('urpStaffRankNaam');
     sessionStorage.removeItem('urpStaffIsStaff');
+    sessionStorage.removeItem('urpStaffIsBurger');
+    sessionStorage.removeItem('urpStaffCanSupport');
     sessionStorage.removeItem('urpStaffDiscordId');
     sessionStorage.removeItem('urpStaffAvatarUrl');
     sessionStorage.removeItem('urpStaffDiscordTag');
@@ -98,7 +110,7 @@ async function discordAuthWithCode(code) {
     return data;
 }
 
-/** Support / wachtkamer — elke URP Discord-lid */
+/** Support / wachtkamer — URP Discord-lid (wachtkamer: Burger-rol of staff) */
 async function discordMemberAuthWithCode(code, redirectUri) {
     const res = await fetch(SITE_API + '/api/discord-auth', {
         method: 'POST',

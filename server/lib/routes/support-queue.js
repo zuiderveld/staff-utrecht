@@ -1,4 +1,4 @@
-const { verifyGuildMember, verifyAccessToken } = require('../discord-staff');
+const { verifyGuildMember, verifyAccessToken, assertSupportAccess } = require('../discord-staff');
 const {
   readChannelsConfig,
   getQueue,
@@ -46,12 +46,16 @@ module.exports = async function handler(req, res) {
     if (action === 'config') {
       const member = await verifyGuildMember(accessToken);
       const cfg = readChannelsConfig();
-      const channels = (cfg.channels || []).filter((c) => !c.staffOnly || member.isStaff);
+      const channels = member.canUseSupport
+        ? (cfg.channels || []).filter((c) => !c.staffOnly || member.isStaff)
+        : [];
       return res.status(200).json({
         channels,
         waitingMusic: cfg.waitingMusic,
         isStaff: member.isStaff,
         isModerator: member.isStaff,
+        isBurger: member.isBurger,
+        canUseSupport: member.canUseSupport,
         callBrand: 'URP Call',
         user: {
           username: member.username,
@@ -74,6 +78,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST' && action === 'join') {
       const member = await verifyGuildMember(accessToken);
+      assertSupportAccess(member);
       const channelId = req.body?.channelId;
       const channel = findChannel(channelId);
       if (!channel) return res.status(400).json({ error: 'Onbekend supportkanaal' });
@@ -119,6 +124,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'DELETE' || action === 'leave') {
       const member = await verifyGuildMember(accessToken);
+      assertSupportAccess(member);
       await updateQueue((state) => {
         state.waiting = (state.waiting || []).filter((e) => e.discordId !== member.discordId);
         state.admitted = (state.admitted || []).filter((e) => e.discordId !== member.discordId);
@@ -128,6 +134,9 @@ module.exports = async function handler(req, res) {
 
     if (action === 'status') {
       const member = await verifyGuildMember(accessToken);
+      if (!member.canUseSupport && !member.isStaff) {
+        return res.status(200).json({ status: 'idle', canUseSupport: false });
+      }
       const state = await getQueue();
       const admitted = (state.admitted || []).find((e) => e.discordId === member.discordId);
       if (admitted) {

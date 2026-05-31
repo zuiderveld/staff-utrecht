@@ -4,6 +4,9 @@
 module.exports = {
   clientId: '1105558581304098867',
 
+  /** Burger — mag support wachtkamer gebruiken (join + call) */
+  burgerRoleId: '1502448704911573113',
+
   /** Ranks van hoog naar laag (lage volgorde = hoogste rang) */
   ranks: [
     { id: 'founder', naam: 'Founder', kleur: '#ffd700', volgorde: 1, discordRoleId: '1502448623252930601' },

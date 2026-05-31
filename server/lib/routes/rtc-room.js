@@ -1,4 +1,4 @@
-const { verifyGuildMember } = require('../discord-staff');
+const { verifyGuildMember, assertSupportAccess } = require('../discord-staff');
 const { loadRoom, updateRoom, pruneRoom } = require('../rtc-room');
 
 function cors(res) {
@@ -40,6 +40,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'join' && req.method === 'POST') {
+      if (!member.isStaff) assertSupportAccess(member);
       await updateRoom(roomId, (state) => {
         state.peers = state.peers || {};
         state.peers[member.discordId] = {
