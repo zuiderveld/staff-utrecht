@@ -13,14 +13,14 @@ function readChannelsConfig() {
       channels: [
         {
           id: 'speler-support',
-          naam: 'Speler support',
+          naam: 'Support 1',
           beschrijving: 'Bel met staff — klik zelf op Verbinden',
           callRoom: 'URP-Support-Spelers',
           staffOnly: false,
         },
         {
           id: 'moderator-overleg',
-          naam: 'Moderator overleg',
+          naam: 'Support 2',
           beschrijving: 'Alleen staff — handmatig verbinden',
           callRoom: 'URP-Support-Moderators',
           staffOnly: true,

@@ -2,14 +2,14 @@
   "channels": [
     {
       "id": "speler-support",
-      "naam": "Speler support",
+      "naam": "Support 1",
       "beschrijving": "Bel met staff — klik zelf op Verbinden om de call te starten",
       "callRoom": "URP-Support-Spelers",
       "staffOnly": false
     },
     {
       "id": "moderator-overleg",
-      "naam": "Moderator overleg",
+      "naam": "Support 2",
       "beschrijving": "Staff/moderator kanaal — handmatig verbinden",
       "callRoom": "URP-Support-Moderators",
       "staffOnly": true
