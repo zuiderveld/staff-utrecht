@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URP Staff Portaal</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/staff.css">
+    <style>
+        .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+        .login-box {
+            background: rgba(24, 20, 36, 0.95); border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 28px; padding: 2.5rem; max-width: 420px; width: 100%; text-align: center;
+        }
+        .login-box img { width: 100px; border-radius: 16px; margin-bottom: 1rem; }
+        .login-box h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+        .login-box h1 span { color: #a78bfa; }
+        .login-box > p { color: #9ca3af; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .login-field { text-align: left; margin-bottom: 1rem; }
+        .login-field label { display: block; font-size: 0.8rem; color: #9ca3af; margin-bottom: 0.35rem; }
+        .login-field input {
+            width: 100%; padding: 0.75rem 1rem; border-radius: 12px;
+            border: 1px solid #2a2c35; background: rgba(0,0,0,0.35); color: #eef2ff; font: inherit;
+        }
+        .btn-login {
+            width: 100%; padding: 1rem; border: none; border-radius: 50px;
+            background: #8b5cf6; color: #0c0a12; font-weight: 700; font-size: 1rem; cursor: pointer;
+        }
+        .btn-login:hover { filter: brightness(1.1); }
+        .login-hint { font-size: 0.75rem; color: #6b7280; margin-top: 1.25rem; }
+    </style>
+</head>
+<body>
+<div class="staff-bg"></div>
+<div class="login-wrap">
+    <div class="login-box">
+        <img src="/assets/favicon.png" alt="URP Staff">
+        <h1>URP <span>Staff</span></h1>
+        <p>Apart staff-portaal · niet gekoppeld aan overheid-site</p>
+        <div class="login-field">
+            <label for="naam">Je naam</label>
+            <input type="text" id="naam" placeholder="Bijv. Gilles" autocomplete="name">
+        </div>
+        <button type="button" class="btn-login" id="btnLogin">
+            <i class="fas fa-arrow-right"></i> Inloggen
+        </button>
+        <p class="login-hint">Utrecht Roleplay · Staff Portaal</p>
+    </div>
+</div>
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+<script>
+    if (new URLSearchParams(location.search).get('redirect')) {
+        sessionStorage.setItem('urpStaffRedirect', new URLSearchParams(location.search).get('redirect'));
+    }
+    if (isLoggedIn()) {
+        location.replace(sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html');
+        sessionStorage.removeItem('urpStaffRedirect');
+    }
+    document.getElementById('btnLogin').onclick = function () {
+        login(document.getElementById('naam').value);
+        location.replace(sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html');
+        sessionStorage.removeItem('urpStaffRedirect');
+    };
+    document.getElementById('naam').onkeydown = function (e) {
+        if (e.key === 'Enter') document.getElementById('btnLogin').click();
+    };
+</script>
+</body>
+</html>

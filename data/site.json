@@ -1,0 +1,39 @@
+{
+  "regels": [
+    {
+      "titel": "Algemene staffregels",
+      "items": [
+        "Wees professioneel en respectvol tegenover spelers en collega's.",
+        "Geen machtsmisbruik of favoritisme bij tickets en sancties.",
+        "Houd vertrouwelijke staff-informatie intern.",
+        "Volg de besluitvorming van hogere staff-rangen."
+      ]
+    },
+    {
+      "titel": "Tickets & support",
+      "items": [
+        "Reageer tijdig op tickets en meldingen.",
+        "Documenteer belangrijke beslissingen kort en duidelijk.",
+        "Escaleer complexe zaken naar management."
+      ]
+    }
+  ],
+  "informatie": [
+    {
+      "titel": "Welkom op het Staff Portaal",
+      "inhoud": "Dit is het officiële URP Staff portaal. Hier vind je regels, informatie en het team per rank."
+    },
+    {
+      "titel": "Communicatie",
+      "inhoud": "Alle officiële staff-communicatie verloopt via de URP Discord."
+    }
+  ],
+  "ranks": [
+    { "id": "eigenaar", "naam": "Eigenaar", "kleur": "#ffd700", "volgorde": 1, "leden": [] },
+    { "id": "management", "naam": "Management", "kleur": "#a855f7", "volgorde": 2, "leden": [] },
+    { "id": "hoofd-staff", "naam": "Hoofd-Staff", "kleur": "#ef4444", "volgorde": 3, "leden": [] },
+    { "id": "senior-staff", "naam": "Senior Staff", "kleur": "#f97316", "volgorde": 4, "leden": [] },
+    { "id": "staff", "naam": "Staff", "kleur": "#22c55e", "volgorde": 5, "leden": [] }
+  ],
+  "updatedAt": null
+}
