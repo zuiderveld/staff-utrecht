@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URP Staff | Support</title>
+    <title>URP | Support & wachtkamer</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="/css/staff.css">
@@ -11,120 +11,106 @@
 <body>
 <div class="staff-bg"></div>
 <div id="siteHeader"></div>
-<main class="staff-container staff-support-page">
+
+<div id="supportLogin" class="login-wrap">
+    <div class="login-box" style="max-width:440px;margin:4rem auto">
+        <img src="/assets/favicon.png" alt="URP" width="80">
+        <h1 style="margin-top:1rem">URP <span style="color:#a78bfa">Support</span></h1>
+        <p style="color:#9ca3af;font-size:0.9rem">
+            Log in met <strong>Discord</strong> — we zien wie je bent (naam + profiel).
+            Daarna wachtkamer met muziek of staff haalt je binnen.
+        </p>
+        <button type="button" class="btn-discord" id="btnSupportDiscord" style="width:100%;padding:1rem;border:none;border-radius:50px;background:#5865f2;color:#fff;font-weight:700;cursor:pointer">
+            <i class="fab fa-discord"></i> Inloggen met Discord
+        </button>
+        <p class="login-error" id="supportLoginError" style="color:#fca5a5;margin-top:1rem"></p>
+        <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem">
+            Je moet lid zijn van de URP Discord-server.
+        </p>
+    </div>
+</div>
+
+<main id="supportMain" class="staff-container staff-support-page" hidden>
+    <div id="supportGuestBar" class="support-guest-bar" hidden>
+        <img id="guestAvatar" src="" alt="" class="support-user-avatar">
+        <div>
+            <strong id="guestDisplayName"></strong>
+            <span style="display:block;font-size:0.8rem;color:#9ca3af">Ingelogd via Discord</span>
+        </div>
+        <button type="button" class="staff-btn" onclick="logout()">Uitloggen</button>
+    </div>
+
     <div class="staff-hero">
-        <h2>Staff <span>Support</span></h2>
-        <p>Bel direct met staff — alles in je browser, geen Discord nodig</p>
+        <h2>Support <span>wachtkamer</span></h2>
+        <p>Custom bellen op de site · Discord-identiteit · staff haalt je binnen</p>
     </div>
 
-    <div class="staff-card staff-support-main">
-        <div class="staff-card-title"><i class="fas fa-headset"></i> Staff belruimte</div>
+    <!-- Staff / moderator paneel -->
+    <div id="staffPanel" class="staff-card support-staff-panel" hidden>
+        <div class="staff-card-title"><i class="fas fa-user-shield"></i> Moderator / staff paneel</div>
         <p class="staff-support-desc">
-            Alleen voor ingelogde staff. Iedereen met toegang tot deze pagina komt in
-            <strong>dezelfde ruimte</strong>. Sta microfoon (en eventueel camera) toe als je browser het vraagt.
+            Zie wie in de wachtkamer zit (Discord-naam + foto). Klik <strong>Binnenhalen</strong> om iemand
+            naar het gesprek te slepen — pas dan kan diegene praten.
         </p>
-
-        <div id="supportStatus" class="staff-support-status">
-            <i class="fas fa-spinner fa-spin"></i> Belruimte voorbereiden…
-        </div>
-
+        <div id="staffQueueList" class="support-queue-list"></div>
+        <hr style="border-color:rgba(139,92,246,0.2);margin:1.5rem 0">
+        <div class="staff-card-title"><i class="fas fa-headset"></i> Staff belruimte</div>
         <div class="staff-support-toolbar">
-            <button type="button" class="staff-btn staff-btn-primary" id="btnJoinCall" disabled>
-                <i class="fas fa-phone"></i> Deelnemen
-            </button>
-            <button type="button" class="staff-btn staff-btn-danger" id="btnLeaveCall" style="display:none">
-                <i class="fas fa-phone-slash"></i> Verlaten
-            </button>
-            <button type="button" class="staff-btn" id="btnMuteHint" style="display:none" disabled title="Gebruik de knoppen in het belscherm">
-                <i class="fas fa-microphone"></i> Mic in belscherm
+            <select id="staffChannelSelect" class="support-select"></select>
+            <button type="button" class="staff-btn staff-btn-primary" id="btnStaffJoinCall">
+                <i class="fas fa-phone"></i> Join staff-kanaal
             </button>
         </div>
-
-        <div id="jitsiWrap" class="staff-jitsi-wrap" hidden>
-            <iframe id="jitsiFrame" title="Staff belruimte" allow="camera; microphone; fullscreen; display-capture; autoplay"></iframe>
+        <div id="staffJitsiWrap" class="staff-jitsi-wrap" hidden>
+            <iframe id="jitsiFrameStaff" title="Staff gesprek" allow="camera; microphone; fullscreen; autoplay"></iframe>
         </div>
-
-        <p class="staff-support-hint" id="browserHint">
-            Na <strong>Deelnemen</strong> verschijnt het belscherm hieronder. Andere staff opent dezelfde Support-pagina om mee te praten.
-        </p>
     </div>
+
+    <!-- Speler / bezoeker wachtkamer -->
+    <div id="guestArea" class="staff-card">
+        <div class="staff-card-title"><i class="fas fa-hourglass-half"></i> Wachtkamer</div>
+        <p id="guestPickHint" class="staff-support-desc">
+            Kies een supportkanaal. Je hoort <strong>muziek</strong> en kunt <strong>niet praten</strong> tot staff je binnenhaalt.
+        </p>
+        <div id="channelPicker" class="support-channel-picker"></div>
+
+        <div id="guestWaitingView" hidden>
+            <div class="support-waiting-hero">
+                <div class="support-waiting-pulse"><i class="fas fa-music"></i></div>
+                <h3>Je wacht op staff…</h3>
+                <p>Kanaal: <strong id="waitChannel"></strong> · positie <strong id="waitPosition"></strong></p>
+                <p id="waitHint" class="staff-support-hint"></p>
+            </div>
+            <div id="waitUserCard"></div>
+            <audio id="waitingMusic" loop preload="auto"></audio>
+            <button type="button" class="staff-btn staff-btn-danger" id="btnLeaveWait" style="margin-top:1rem">
+                <i class="fas fa-door-open"></i> Wachtkamer verlaten
+            </button>
+        </div>
+
+        <div id="guestAdmittedView" hidden>
+            <p class="staff-support-status ok" style="display:block">
+                <i class="fas fa-check-circle"></i> Je bent binnengehaald — je kunt nu praten in <strong id="admittedChannelName"></strong>
+            </p>
+            <div class="staff-jitsi-wrap">
+                <iframe id="jitsiFrameGuest" title="Support gesprek" allow="camera; microphone; fullscreen; autoplay"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <p class="staff-support-hint">
+        Kanalen aanpassen: <code>data/support-channels.json</code> · wachtrij vereist Vercel Blob.
+        <a href="/dashboard.html" style="color:#a78bfa" id="linkStaffPortal">Staff portaal</a>
+    </p>
 </main>
-<footer class="staff-footer">© Utrecht Roleplay · Staff Portaal</footer>
+
+<footer class="staff-footer">© Utrecht Roleplay</footer>
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/support-page.js"></script>
 <script>
-    if (!requireLogin()) throw 0;
-    mountHeader('support');
-
-    let supportConfig = null;
-    const statusEl = document.getElementById('supportStatus');
-    const hintEl = document.getElementById('browserHint');
-
-    function setStatus(html, type) {
-        statusEl.className = 'staff-support-status' + (type ? ' ' + type : '');
-        statusEl.innerHTML = html;
-    }
-
-    function buildJitsiUrl(cfg) {
-        const room = encodeURIComponent(cfg.room);
-        const server = (cfg.jitsiServer || 'meet.jit.si').replace(/^https?:\/\//, '');
-        let url = 'https://' + server + '/' + room;
-        const hash = [
-            'config.prejoinPageEnabled=false',
-            'config.startWithAudioMuted=false',
-            'config.startWithVideoMuted=true',
-            'config.disableDeepLinking=true',
-            'interfaceConfig.SHOW_JITSI_WATERMARK=false',
-            'interfaceConfig.MOBILE_APP_PROMO=false',
-            'userInfo.displayName=' + encodeURIComponent(cfg.displayName || userName()),
-        ];
-        if (cfg.password) {
-            hash.push('config.password=' + encodeURIComponent(cfg.password));
-        }
-        url += '#' + hash.join('&');
-        return url;
-    }
-
-    function joinCall() {
-        if (!supportConfig) return;
-        const wrap = document.getElementById('jitsiWrap');
-        const frame = document.getElementById('jitsiFrame');
-        frame.src = buildJitsiUrl(supportConfig);
-        wrap.hidden = false;
-        document.getElementById('btnJoinCall').style.display = 'none';
-        document.getElementById('btnLeaveCall').style.display = 'inline-flex';
-        setStatus('<i class="fas fa-circle" style="color:#22c55e"></i> Verbonden — je hoort anderen zodra zij ook deelnemen.', 'ok');
-        hintEl.textContent =
-            'Je zit in de staff-belruimte op de website. Laat dit tabblad open tijdens het gesprek.';
-    }
-
-    function leaveCall() {
-        document.getElementById('jitsiFrame').src = 'about:blank';
-        document.getElementById('jitsiWrap').hidden = true;
-        document.getElementById('btnJoinCall').style.display = 'inline-flex';
-        document.getElementById('btnLeaveCall').style.display = 'none';
-        setStatus('<i class="fas fa-headset"></i> Niet verbonden. Klik op Deelnemen om terug te gaan.', '');
-        hintEl.textContent =
-            'Klik op Deelnemen om het belscherm te openen. Alleen ingelogde staff heeft toegang.';
-    }
-
-    document.getElementById('btnJoinCall').addEventListener('click', joinCall);
-    document.getElementById('btnLeaveCall').addEventListener('click', leaveCall);
-
-    fetchSupportRoom()
-        .then(function (cfg) {
-            supportConfig = cfg;
-            document.getElementById('btnJoinCall').disabled = false;
-            setStatus(
-                '<i class="fas fa-check-circle" style="color:#22c55e"></i> Klaar — klik <strong>Deelnemen</strong> om te bellen via de website.',
-                'ok'
-            );
-            joinCall();
-        })
-        .catch(function (e) {
-            setStatus('<i class="fas fa-exclamation-circle"></i> ' + escapeHtml(e.message), 'err');
-            hintEl.textContent = 'Log opnieuw in met Discord (staff-rol vereist).';
-        });
+    document.getElementById('linkStaffPortal').hidden = !isStaff();
+    initSupportPage();
 </script>
 </body>
 </html>

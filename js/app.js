@@ -18,10 +18,33 @@ function accessToken() {
     return sessionStorage.getItem('urpStaffAccessToken') || '';
 }
 
+function isStaff() {
+    return sessionStorage.getItem('urpStaffIsStaff') === 'true';
+}
+
+function discordId() {
+    return sessionStorage.getItem('urpStaffDiscordId') || '';
+}
+
+function avatarUrl() {
+    return sessionStorage.getItem('urpStaffAvatarUrl') || '';
+}
+
+function discordTag() {
+    return sessionStorage.getItem('urpStaffDiscordTag') || '';
+}
+
 function setSession(data) {
-    sessionStorage.setItem('urpStaffUser', data.username || 'Staff');
+    sessionStorage.setItem('urpStaffUser', data.username || 'Gebruiker');
     sessionStorage.setItem('urpStaffAccessToken', data.accessToken || '');
     sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffIsStaff', data.isStaff ? 'true' : 'false');
+    if (data.discordId) sessionStorage.setItem('urpStaffDiscordId', data.discordId);
+    else sessionStorage.removeItem('urpStaffDiscordId');
+    if (data.avatarUrl) sessionStorage.setItem('urpStaffAvatarUrl', data.avatarUrl);
+    else sessionStorage.removeItem('urpStaffAvatarUrl');
+    if (data.discordUsername) sessionStorage.setItem('urpStaffDiscordTag', data.discordUsername);
+    else sessionStorage.removeItem('urpStaffDiscordTag');
     if (data.rankNaam) sessionStorage.setItem('urpStaffRankNaam', data.rankNaam);
     else sessionStorage.removeItem('urpStaffRankNaam');
 }
@@ -31,14 +54,24 @@ function logout() {
     sessionStorage.removeItem('urpStaffAccessToken');
     sessionStorage.removeItem('urpStaffBeheer');
     sessionStorage.removeItem('urpStaffRankNaam');
+    sessionStorage.removeItem('urpStaffIsStaff');
+    sessionStorage.removeItem('urpStaffDiscordId');
+    sessionStorage.removeItem('urpStaffAvatarUrl');
+    sessionStorage.removeItem('urpStaffDiscordTag');
     sessionStorage.removeItem('urpStaffRedirect');
     window.location.replace('/');
 }
 
+/** Staff-portaal pagina's (dashboard, regels, …) */
 function requireLogin() {
     if (!isLoggedIn()) {
         sessionStorage.setItem('urpStaffRedirect', window.location.pathname);
         window.location.replace('/');
+        return false;
+    }
+    if (!isStaff()) {
+        alert('Alleen staff met Discord-rol heeft toegang tot het portaal. Gebruik Support voor hulp.');
+        window.location.replace('/support.html');
         return false;
     }
     return true;
@@ -62,6 +95,34 @@ async function discordAuthWithCode(code) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Discord inloggen mislukt');
     setSession(data);
+    return data;
+}
+
+/** Support / wachtkamer — elke URP Discord-lid */
+async function discordMemberAuthWithCode(code, redirectUri) {
+    const res = await fetch(SITE_API + '/api/discord-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code, redirectUri: redirectUri || discordRedirectUri() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Discord inloggen mislukt');
+    setSession(data);
+    return data;
+}
+
+function supportRedirectUri() {
+    return window.location.origin + '/support.html';
+}
+
+async function supportAdmit(discordIdTarget) {
+    const res = await fetch(SITE_API + '/api/support-admit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken(), discordId: discordIdTarget }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Binnenhalen mislukt');
     return data;
 }
 

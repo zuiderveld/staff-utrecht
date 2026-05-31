@@ -80,7 +80,16 @@ function resolveAccess(userRoles) {
   return { rank, isBeheer };
 }
 
-async function verifyAccessToken(accessToken) {
+function avatarUrlFromUser(user) {
+  if (!user?.id) return null;
+  if (user.avatar) {
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`;
+  }
+  const disc = Number((BigInt(user.id) >> 22n) % 6n);
+  return `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
+}
+
+async function verifyGuildMember(accessToken) {
   const userRes = await fetch('https://discord.com/api/v10/users/@me', {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -89,20 +98,30 @@ async function verifyAccessToken(accessToken) {
 
   const member = await getGuildMember(user.id);
   const userRoles = member.roles || [];
-  const username = member.nick || user.global_name || user.username;
+  const displayName = member.nick || user.global_name || user.username;
   const { rank, isBeheer } = resolveAccess(userRoles);
-
-  if (!rank && !isBeheer) {
-    throw new Error('Geen staff Discord-rol gevonden op deze server.');
-  }
+  const isStaff = !!(rank || isBeheer);
 
   return {
-    username,
+    username: displayName,
+    discordUsername: user.username,
+    discordId: user.id,
+    avatarUrl: avatarUrlFromUser(user),
     accessToken,
+    isStaff,
     isBeheer,
+    isModerator: isStaff,
     rankId: rank?.rankId || null,
     rankNaam: rank?.rankNaam || (isBeheer ? 'Beheer' : null),
   };
+}
+
+async function verifyAccessToken(accessToken) {
+  const info = await verifyGuildMember(accessToken);
+  if (!info.isStaff) {
+    throw new Error('Geen staff Discord-rol gevonden op deze server.');
+  }
+  return info;
 }
 
 async function fetchAllGuildMembers() {
@@ -240,6 +259,7 @@ async function getGuildRolesMap() {
 module.exports = {
   exchangeCode,
   verifyAccessToken,
+  verifyGuildMember,
   getBeheerRoleIds,
   getStaffTeamLive,
   getGuildRolesMap,
