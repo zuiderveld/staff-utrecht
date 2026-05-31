@@ -4,7 +4,7 @@
 function URPCall(options) {
     this.roomId = options.roomId;
     this.container = options.container;
-    this.peerId = options.peerId || discordId();
+    this.peerId = String(options.peerId || discordId());
     this.displayName = options.displayName || userName();
     this.avatarUrl = options.avatarUrl || avatarUrl();
     this.accessToken = options.accessToken || accessToken();
@@ -90,16 +90,16 @@ URPCall.prototype.updateParticipants = function (roster) {
         avatarUrl: this.avatarUrl,
         local: true,
         muted: this.muted,
-        speaking: speaking.has(this.peerId),
+        speaking: speaking.has(String(this.peerId)),
     });
     const remote = (roster || [])
         .map(function (p) {
             return renderParticipantTile({
-                id: p.id,
+                id: String(p.id),
                 name: p.name + (p.isStaff ? ' (Staff)' : ''),
                 avatarUrl: p.avatarUrl,
                 local: false,
-                speaking: speaking.has(p.id),
+                speaking: speaking.has(String(p.id)),
             });
         })
         .join('');
@@ -179,17 +179,22 @@ URPCall.prototype.startVoiceMonitoring = function () {
 };
 
 URPCall.prototype.tickVoiceActivity = function () {
-    const threshold = 0.045;
+    const localThreshold = 0.028;
+    const remoteThreshold = 0.012;
     const next = new Set();
     if (this._localAnalyser && !this.muted) {
-        if (this.getVolumeLevel(this._localAnalyser) > threshold) next.add(this.peerId);
+        if (this.getVolumeLevel(this._localAnalyser) > localThreshold) next.add(String(this.peerId));
     }
     const self = this;
     this.connections.forEach(function (conn, id) {
-        if (conn.analyser && self.getVolumeLevel(conn.analyser) > threshold) next.add(id);
+        if (!conn.analyser) return;
+        if (self.getVolumeLevel(conn.analyser) > remoteThreshold) next.add(String(id));
     });
     this._speaking = next;
     this.applySpeakingUI();
+    if (this._lastRoster) {
+        this.updateParticipants(this._lastRoster);
+    }
 };
 
 URPCall.prototype.applySpeakingUI = function () {
@@ -242,8 +247,23 @@ URPCall.prototype.toggleMute = function () {
 };
 
 URPCall.prototype.sendSignal = async function (to, type, data) {
-    await this.api('signal', { to: to, type: type, data: data });
+    await this.api('signal', { to: String(to), type: type, data: data });
 };
+
+function sortSignals(signals) {
+    const order = { offer: 0, answer: 1, ice: 2 };
+    return (signals || []).slice().sort(function (a, b) {
+        const oa = order[a.type] !== undefined ? order[a.type] : 9;
+        const ob = order[b.type] !== undefined ? order[b.type] : 9;
+        if (oa !== ob) return oa - ob;
+        return String(a.id).localeCompare(String(b.id));
+    });
+}
+
+function signalIsNewer(id, since) {
+    if (!since) return true;
+    return String(id).localeCompare(String(since)) > 0;
+}
 
 function sessionToJson(desc) {
     if (!desc) return null;
@@ -299,13 +319,16 @@ URPCall.prototype.playRemoteAudio = function (audio) {
 };
 
 URPCall.prototype.initiateOffer = async function (remoteId) {
+    remoteId = String(remoteId);
     const conn = this.connections.get(remoteId);
     if (!conn || !this.localStream) return;
     const pc = conn.pc;
-    if (pc.signalingState !== 'stable' || conn.makingOffer) return;
+    if (conn.makingOffer) return;
+    if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-local-offer') return;
     conn.makingOffer = true;
     try {
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer({ offerToReceiveAudio: true, iceRestart: !!conn.iceRestart });
+        conn.iceRestart = false;
         await pc.setLocalDescription(offer);
         await this.sendSignal(remoteId, 'offer', sessionToJson(pc.localDescription));
     } catch (err) {
@@ -315,15 +338,60 @@ URPCall.prototype.initiateOffer = async function (remoteId) {
     }
 };
 
+URPCall.prototype.wireRemoteAudio = function (remoteId, stream) {
+    remoteId = String(remoteId);
+    const conn = this.connections.get(remoteId);
+    if (!conn || !stream) return;
+    const audio = conn.audio;
+    if (!conn.remoteStream) conn.remoteStream = new MediaStream();
+    stream.getAudioTracks().forEach(function (track) {
+        const exists = conn.remoteStream.getAudioTracks().some(function (t) {
+            return t.id === track.id;
+        });
+        if (!exists) conn.remoteStream.addTrack(track);
+    });
+    audio.srcObject = conn.remoteStream;
+    audio.muted = false;
+    audio.volume = 1;
+    this.playRemoteAudio(audio);
+
+    const ac = this.ensureAudioContext();
+    if (!ac) return;
+
+    if (!conn.wiredElement) {
+        try {
+            const src = ac.createMediaElementSource(audio);
+            const analyser = ac.createAnalyser();
+            analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.55;
+            src.connect(analyser);
+            analyser.connect(ac.destination);
+            conn.analyser = analyser;
+            conn.wiredElement = true;
+            return;
+        } catch (e) {
+            /* fallback */
+        }
+    }
+    conn.analyser = this.attachStreamAnalyser(conn.remoteStream);
+};
+
 URPCall.prototype.createPeerConnection = function (remoteId) {
     const self = this;
+    remoteId = String(remoteId);
     if (this.connections.has(remoteId)) return this.connections.get(remoteId).pc;
 
-    const pc = new RTCPeerConnection({ iceServers: this.iceServers });
-    if (this.localStream) {
-        this.localStream.getTracks().forEach(function (t) {
-            pc.addTrack(t, self.localStream);
-        });
+    const pc = new RTCPeerConnection({
+        iceServers: this.iceServers,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
+    });
+
+    const audioTrack = this.localStream && this.localStream.getAudioTracks()[0];
+    if (audioTrack) {
+        pc.addTrack(audioTrack, this.localStream);
+    } else {
+        pc.addTransceiver('audio', { direction: 'sendrecv' });
     }
 
     const audio = document.createElement('audio');
@@ -331,14 +399,34 @@ URPCall.prototype.createPeerConnection = function (remoteId) {
     audio.playsInline = true;
     audio.setAttribute('playsinline', '');
     audio.dataset.remotePeer = remoteId;
-    audio.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none';
-    if (this.container) this.container.appendChild(audio);
+    document.body.appendChild(audio);
+
+    const conn = {
+        pc: pc,
+        audio: audio,
+        iceQueue: [],
+        makingOffer: false,
+        missedPolls: 0,
+        restartAttempts: 0,
+        iceRestart: false,
+        remoteStream: null,
+        wiredElement: false,
+    };
+    this.connections.set(remoteId, conn);
 
     pc.ontrack = function (e) {
-        if (!e.streams[0]) return;
-        audio.srcObject = e.streams[0];
-        self.playRemoteAudio(audio);
-        self.attachRemoteAnalyser(remoteId, e.streams[0]);
+        if (e.track.kind !== 'audio') return;
+        let stream = e.streams[0];
+        if (!stream) {
+            if (!conn.remoteStream) conn.remoteStream = new MediaStream();
+            conn.remoteStream.addTrack(e.track);
+            stream = conn.remoteStream;
+        }
+        self.wireRemoteAudio(remoteId, stream);
+        e.track.onunmute = function () {
+            self.wireRemoteAudio(remoteId, stream);
+            self.playRemoteAudio(audio);
+        };
     };
 
     pc.onicecandidate = function (e) {
@@ -347,21 +435,32 @@ URPCall.prototype.createPeerConnection = function (remoteId) {
         }
     };
 
-    pc.onconnectionstatechange = function () {
-        if (pc.connectionState === 'connected') {
+    pc.oniceconnectionstatechange = function () {
+        const st = pc.iceConnectionState;
+        if (st === 'connected' || st === 'completed') {
             self.setStatus('Audio verbonden — je kunt praten');
-        } else if (pc.connectionState === 'failed') {
-            self.setStatus('Verbinding mislukt — probeer opnieuw te verbinden');
+            self.playRemoteAudio(audio);
+        } else if (st === 'failed' || st === 'disconnected') {
+            conn.iceRestart = true;
+            if (self.shouldInitiateOffer(remoteId) && (conn.restartAttempts || 0) < 4) {
+                conn.restartAttempts = (conn.restartAttempts || 0) + 1;
+                setTimeout(function () {
+                    self.initiateOffer(remoteId);
+                }, 400);
+            }
         }
     };
 
-    const conn = { pc: pc, audio: audio, iceQueue: [], makingOffer: false, missedPolls: 0 };
-    this.connections.set(remoteId, conn);
+    pc.onnegotiationneeded = function () {
+        if (self.shouldInitiateOffer(remoteId)) {
+            self.initiateOffer(remoteId);
+        }
+    };
 
     if (this.shouldInitiateOffer(remoteId)) {
         setTimeout(function () {
             self.initiateOffer(remoteId);
-        }, 80);
+        }, 120);
     }
 
     return pc;
@@ -375,7 +474,7 @@ URPCall.prototype.ensureConnection = function (remoteId) {
 };
 
 URPCall.prototype.handleSignal = async function (sig) {
-    const remoteId = sig.from;
+    const remoteId = String(sig.from);
     const conn = this.ensureConnection(remoteId);
     const pc = conn.pc;
 
@@ -386,12 +485,14 @@ URPCall.prototype.handleSignal = async function (sig) {
             }
             await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
             await this.flushIceQueue(conn);
-            const answer = await pc.createAnswer();
+            const answer = await pc.createAnswer({ offerToReceiveAudio: true });
             await pc.setLocalDescription(answer);
             await this.sendSignal(remoteId, 'answer', sessionToJson(pc.localDescription));
         } else if (sig.type === 'answer' && sig.data) {
-            await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
-            await this.flushIceQueue(conn);
+            if (pc.signalingState === 'have-local-offer') {
+                await pc.setRemoteDescription(new RTCSessionDescription(sig.data));
+                await this.flushIceQueue(conn);
+            }
         } else if (sig.type === 'ice') {
             await this.queueIceCandidate(conn, sig.data);
         }
@@ -402,17 +503,23 @@ URPCall.prototype.handleSignal = async function (sig) {
 
 URPCall.prototype.syncRoster = async function (roster) {
     const self = this;
-    const ids = new Set((roster || []).map(function (p) {
-        return p.id;
-    }));
+    const ids = new Set(
+        (roster || []).map(function (p) {
+            return String(p.id);
+        })
+    );
     roster.forEach(function (p) {
-        if (p.id === self.peerId) return;
-        self.createPeerConnection(p.id);
-        const c = self.connections.get(p.id);
+        const pid = String(p.id);
+        if (pid === self.peerId) return;
+        self.createPeerConnection(pid);
+        const c = self.connections.get(pid);
         if (c) c.missedPolls = 0;
+        if (self.shouldInitiateOffer(pid) && c && c.pc.signalingState === 'stable') {
+            self.initiateOffer(pid);
+        }
     });
     self.connections.forEach(function (_conn, id) {
-        if (!ids.has(id)) {
+        if (!ids.has(String(id))) {
             _conn.missedPolls = (_conn.missedPolls || 0) + 1;
             if (_conn.missedPolls < 6) return;
             _conn.pc.close();
@@ -439,8 +546,10 @@ URPCall.prototype.poll = async function () {
     try {
         const data = await this.api('poll');
         this._pollFailures = 0;
-        for (const sig of data.signals || []) {
-            if (sig.id > this.lastSignalId) this.lastSignalId = sig.id;
+        const signals = sortSignals(data.signals || []);
+        for (let i = 0; i < signals.length; i++) {
+            const sig = signals[i];
+            if (signalIsNewer(sig.id, this.lastSignalId)) this.lastSignalId = sig.id;
             await this.handleSignal(sig);
         }
         await this.syncRoster(data.roster || []);
@@ -518,7 +627,7 @@ URPCall.prototype.start = async function () {
     const self = this;
     this.pollTimer = setInterval(function () {
         self.poll();
-    }, 450);
+    }, 280);
     this.heartbeatTimer = setInterval(function () {
         self.api('heartbeat').catch(function () {});
     }, 8000);
@@ -536,6 +645,13 @@ URPCall.prototype.stop = async function () {
     this.connections.forEach(function (c) {
         c.pc.close();
         if (c.audio && c.audio.parentNode) c.audio.parentNode.removeChild(c.audio);
+        if (c._mediaSource) {
+            try {
+                c._mediaSource.disconnect();
+            } catch (e) {
+                /* ignore */
+            }
+        }
     });
     this.connections.clear();
     if (this.localStream) {

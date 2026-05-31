@@ -108,8 +108,8 @@ module.exports = async function handler(req, res) {
         state.signals = state.signals || [];
         state.signals.push({
           id: sigId,
-          from: member.discordId,
-          to,
+          from: String(member.discordId),
+          to: String(to),
           type,
           data,
           at: new Date().toISOString(),
@@ -125,7 +125,7 @@ module.exports = async function handler(req, res) {
       const roster = await rosterForMember(roomId, member);
       const state = await loadRoom(roomId);
       const signals = (state.signals || []).filter(
-        (s) => s.to === member.discordId && (!since || s.id > since)
+        (s) => String(s.to) === String(member.discordId) && (!since || String(s.id) > String(since))
       );
       return res.status(200).json({ roster, signals, peerId: member.discordId });
     }
