@@ -197,9 +197,50 @@ async function getStaffTeamLive() {
   return { ...data, cached: false };
 }
 
+let guildRolesCache = { at: 0, map: null };
+const GUILD_ROLES_CACHE_MS = 5 * 60_000;
+
+function discordColorHex(color) {
+  if (!color) return null;
+  return '#' + color.toString(16).padStart(6, '0');
+}
+
+async function getGuildRolesMap() {
+  if (guildRolesCache.map && Date.now() - guildRolesCache.at < GUILD_ROLES_CACHE_MS) {
+    return guildRolesCache.map;
+  }
+
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  if (!token || !guildId) {
+    throw new Error('DISCORD_BOT_TOKEN en DISCORD_GUILD_ID zijn verplicht in Vercel.');
+  }
+
+  const res = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+    headers: { Authorization: `Bot ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new Error('Kon Discord-rollen niet ophalen. Staat de bot op de server?');
+  }
+
+  const roles = await res.json();
+  const map = {};
+  for (const r of roles) {
+    map[r.id] = {
+      name: r.name,
+      color: discordColorHex(r.color),
+    };
+  }
+
+  guildRolesCache = { at: Date.now(), map };
+  return map;
+}
+
 module.exports = {
   exchangeCode,
   verifyAccessToken,
   getBeheerRoleIds,
   getStaffTeamLive,
+  getGuildRolesMap,
 };

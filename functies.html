@@ -14,7 +14,7 @@
 <main class="staff-container">
     <div class="staff-hero">
         <h2>Staff <span>Functies</span></h2>
-        <p>Rollen, permissies en Discord role-ID's</p>
+        <p>Discord-rollen met naam · klik op pijltje om te openen</p>
     </div>
     <div id="content"><p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden...</p></div>
 </main>
@@ -24,12 +24,20 @@
 <script>
     if (!requireLogin()) throw 0;
     mountHeader('functies');
-    fetch('/data/functies.json', { cache: 'no-store' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) { renderFuncties(data, document.getElementById('content')); })
+    const contentEl = document.getElementById('content');
+
+    Promise.all([
+        fetch('/data/functies.json', { cache: 'no-store' }).then(function (r) { return r.json(); }),
+        fetchDiscordRoleNames().catch(function (e) {
+            console.warn('Discord rollen:', e);
+            return {};
+        }),
+    ])
+        .then(function (results) {
+            renderFuncties(results[0], contentEl, results[1]);
+        })
         .catch(function () {
-            document.getElementById('content').innerHTML =
-                '<p class="staff-empty">Kon functies niet laden.</p>';
+            contentEl.innerHTML = '<p class="staff-empty">Kon functies niet laden.</p>';
         });
 </script>
 </body>

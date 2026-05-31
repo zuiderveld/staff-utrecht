@@ -159,20 +159,91 @@ function renderRegels(regels, container) {
         .join('');
 }
 
-function roleIdChip(id) {
+async function fetchDiscordRoleNames() {
+    const res = await fetch(SITE_API + '/api/discord-role-names', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Discord-rollen laden mislukt');
+    return data.roles || {};
+}
+
+function roleMeta(id, roleMap) {
+    const m = roleMap && roleMap[id];
+    return {
+        id: id,
+        name: (m && m.name) || 'Onbekende rol',
+        color: (m && m.color) || '#6b7280',
+        known: !!(m && m.name),
+    };
+}
+
+function roleIdChip(id, roleMap) {
+    const r = roleMeta(id, roleMap);
+    const borderStyle = r.color ? ' style="border-color:' + escapeHtml(r.color) + '55"' : '';
+    const dotStyle = r.color ? ' style="background:' + escapeHtml(r.color) + '"' : '';
     return (
-        '<button type="button" class="staff-role-chip" data-role-id="' +
+        '<button type="button" class="staff-role-chip' +
+        (r.known ? '' : ' staff-role-chip-unknown') +
+        '" data-role-id="' +
         escapeHtml(id) +
-        '" title="Klik om role-ID te kopiëren">' +
-        '<i class="fas fa-hashtag"></i><code>' +
+        '"' +
+        borderStyle +
+        ' title="Klik om role-ID te kopiëren · ' +
         escapeHtml(id) +
-        '</code></button>'
+        '">' +
+        '<span class="staff-role-dot"' +
+        dotStyle +
+        '></span>' +
+        '<span class="staff-role-chip-text">' +
+        '<span class="staff-role-name">' +
+        escapeHtml(r.name) +
+        '</span>' +
+        '<code class="staff-role-id-hint">' +
+        escapeHtml(id) +
+        '</code></span></button>'
     );
 }
 
-function roleIdList(ids) {
+function roleIdList(ids, roleMap) {
     if (!ids || !ids.length) return '';
-    return '<div class="staff-role-list">' + ids.map(roleIdChip).join('') + '</div>';
+    return (
+        '<div class="staff-role-list">' +
+        ids.map(function (id) { return roleIdChip(id, roleMap); }).join('') +
+        '</div>'
+    );
+}
+
+function functieToggleHtml(label, panelId, startOpen) {
+    const open = startOpen ? ' open' : '';
+    const expanded = startOpen ? 'true' : 'false';
+    return (
+        '<button type="button" class="staff-functie-toggle' +
+        open +
+        '" aria-expanded="' +
+        expanded +
+        '" aria-controls="' +
+        panelId +
+        '">' +
+        '<i class="fas fa-chevron-right staff-functie-chevron" aria-hidden="true"></i>' +
+        '<span class="staff-functie-toggle-label">' +
+        escapeHtml(label) +
+        '</span></button>'
+    );
+}
+
+function functiePanelHtml(panelId, innerHtml, startOpen) {
+    return (
+        '<div id="' +
+        panelId +
+        '" class="staff-functie-panel' +
+        (startOpen ? ' open' : '') +
+        '">' +
+        innerHtml +
+        '</div>'
+    );
 }
 
 function bindRoleCopy(container) {
@@ -188,7 +259,20 @@ function bindRoleCopy(container) {
     });
 }
 
-function renderFuncties(data, container) {
+function bindFunctieAccordions(container) {
+    container.querySelectorAll('.staff-functie-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const panelId = btn.getAttribute('aria-controls');
+            const panel = panelId ? document.getElementById(panelId) : null;
+            const isOpen = btn.classList.toggle('open');
+            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            if (panel) panel.classList.toggle('open', isOpen);
+        });
+    });
+}
+
+function renderFuncties(data, container, roleMap) {
+    roleMap = roleMap || {};
     if (!data || !data.secties) {
         container.innerHTML = '<p class="staff-empty">Geen functies gevonden.</p>';
         return;
@@ -200,13 +284,14 @@ function renderFuncties(data, container) {
         escapeHtml(data.titel || 'Staffrangen & Functies') +
         '</div>';
 
-    data.secties.forEach(function (sectie) {
+    data.secties.forEach(function (sectie, i) {
+        const panelId = 'functie-sectie-' + i;
+        const startOpen = i === 0;
+        const panelInner = roleIdList(sectie.rollen, roleMap);
         html +=
             '<div class="staff-functie-sectie">' +
-            '<p class="staff-functie-desc"><i class="fas fa-chevron-right"></i> ' +
-            escapeHtml(sectie.beschrijving || '') +
-            '</p>' +
-            roleIdList(sectie.rollen) +
+            functieToggleHtml(sectie.beschrijving || 'Sectie', panelId, startOpen) +
+            functiePanelHtml(panelId, panelInner, startOpen) +
             '</div>';
     });
     html += '</div>';
@@ -217,22 +302,31 @@ function renderFuncties(data, container) {
             '<div class="staff-card-title"><i class="fas fa-puzzle-piece"></i> ' +
             escapeHtml(data.extra.titel || 'Extra functies') +
             '</div>';
-        data.extra.items.forEach(function (item) {
-            html += '<div class="staff-functie-extra">';
-            html += roleIdList(item.rollen);
-            html += '<p class="staff-functie-uitleg">' + escapeHtml(item.uitleg || '') + '</p>';
+        data.extra.items.forEach(function (item, i) {
+            const panelId = 'functie-extra-' + i;
+            const firstRole = item.rollen && item.rollen[0] ? roleMeta(item.rollen[0], roleMap).name : '';
+            const toggleLabel = firstRole
+                ? firstRole + (item.uitleg ? ' — ' + item.uitleg.slice(0, 60) + (item.uitleg.length > 60 ? '…' : '') : '')
+                : item.uitleg || 'Extra rol';
+            let panelInner = roleIdList(item.rollen, roleMap);
+            panelInner += '<p class="staff-functie-uitleg">' + escapeHtml(item.uitleg || '') + '</p>';
             if (item.vanaf && item.vanaf.length) {
-                html +=
+                panelInner +=
                     '<p class="staff-functie-vanaf-label">Mogelijk vanaf:</p>' +
-                    roleIdList(item.vanaf);
+                    roleIdList(item.vanaf, roleMap);
             }
-            html += '</div>';
+            html +=
+                '<div class="staff-functie-extra">' +
+                functieToggleHtml(toggleLabel, panelId, false) +
+                functiePanelHtml(panelId, panelInner, false) +
+                '</div>';
         });
         html += '</div>';
     }
 
     container.innerHTML = html;
     bindRoleCopy(container);
+    bindFunctieAccordions(container);
 }
 
 function renderInfo(sections, container) {
