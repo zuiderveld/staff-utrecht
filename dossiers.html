@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URP Staff | Dossiers</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/staff.css">
+</head>
+<body>
+<div class="staff-bg"></div>
+<div id="siteHeader"></div>
+<main class="staff-container staff-dossiers-page">
+    <div class="staff-hero">
+        <h2>Staff <span>dossiers</span></h2>
+        <p>Per persoon: staffwarns, ontslagen, berichten en notities</p>
+    </div>
+
+    <div class="staff-dossiers-toolbar">
+        <input type="search" id="searchInput" class="staff-dossiers-search" placeholder="Zoek op naam of Discord…" autocomplete="off">
+        <div class="staff-dossiers-toolbar-actions" id="beheerActions" hidden>
+            <button type="button" class="staff-btn staff-btn-outline" id="btnNewPerson"><i class="fas fa-user-plus"></i> Persoon</button>
+            <button type="button" class="staff-btn staff-btn-primary" id="btnNewEntry" disabled><i class="fas fa-plus"></i> Registratie</button>
+        </div>
+    </div>
+    <p class="staff-dossiers-meta" id="dossiersMeta"></p>
+
+    <div class="staff-dossiers-layout">
+        <aside class="staff-dossiers-list" id="personList">
+            <p class="staff-empty"><i class="fas fa-spinner fa-spin"></i> Laden…</p>
+        </aside>
+        <section class="staff-card staff-dossiers-detail" id="detailPanel">
+            <p class="staff-empty">Selecteer een persoon links om het dossier te bekijken.</p>
+        </section>
+    </div>
+</main>
+
+<div class="staff-modal" id="modal" hidden>
+    <div class="staff-modal-backdrop" data-close></div>
+    <div class="staff-modal-box staff-card">
+        <h3 class="staff-modal-title" id="modalTitle"></h3>
+        <form id="modalForm"></form>
+        <div class="staff-modal-actions">
+            <button type="button" class="staff-btn staff-btn-outline" data-close>Annuleren</button>
+            <button type="submit" form="modalForm" class="staff-btn staff-btn-primary" id="modalSave">Opslaan</button>
+        </div>
+    </div>
+</div>
+
+<footer class="staff-footer">© Utrecht Roleplay · Staff Portaal</footer>
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+<script>
+    if (!requireLogin()) throw 0;
+    mountHeader('dossiers');
+
+    var state = { personen: [], selectedId: null };
+    var canEdit = isBeheer();
+
+    if (canEdit) document.getElementById('beheerActions').hidden = false;
+
+    function uid(prefix) {
+        return prefix + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    }
+
+    function counts(person) {
+        var e = person.entries || [];
+        return {
+            warn: e.filter(function (x) { return x.type === 'warn'; }).length,
+            ontslag: e.filter(function (x) { return x.type === 'ontslag'; }).length,
+            overig: e.filter(function (x) { return x.type !== 'warn' && x.type !== 'ontslag'; }).length,
+        };
+    }
+
+    function filterPersonen(q) {
+        q = (q || '').toLowerCase().trim();
+        if (!q) return state.personen;
+        return state.personen.filter(function (p) {
+            return (
+                (p.naam || '').toLowerCase().includes(q) ||
+                (p.discord || '').toLowerCase().includes(q)
+            );
+        });
+    }
+
+    function renderList() {
+        var list = document.getElementById('personList');
+        var q = document.getElementById('searchInput').value;
+        var items = filterPersonen(q);
+        if (!items.length) {
+            list.innerHTML = '<p class="staff-empty">Geen personen gevonden.</p>';
+            return;
+        }
+        list.innerHTML = items
+            .map(function (p) {
+                var c = counts(p);
+                var active = p.id === state.selectedId ? ' active' : '';
+                return (
+                    '<button type="button" class="staff-dossiers-person' + active + '" data-id="' + escapeHtml(p.id) + '">' +
+                    '<span class="staff-dossiers-person-name">' + escapeHtml(p.naam) + '</span>' +
+                    (p.discord ? '<span class="staff-dossiers-person-disc">' + escapeHtml(p.discord) + '</span>' : '') +
+                    '<span class="staff-dossiers-badges">' +
+                    (c.warn ? '<span class="staff-dossier-badge staff-dossier-badge--warn">' + c.warn + ' warn</span>' : '') +
+                    (c.ontslag ? '<span class="staff-dossier-badge staff-dossier-badge--ontslag">' + c.ontslag + ' ontslag</span>' : '') +
+                    '</span></button>'
+                );
+            })
+            .join('');
+        list.querySelectorAll('.staff-dossiers-person').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                state.selectedId = btn.getAttribute('data-id');
+                document.getElementById('btnNewEntry').disabled = false;
+                renderList();
+                renderDetail();
+            });
+        });
+    }
+
+    function renderDetail() {
+        var panel = document.getElementById('detailPanel');
+        var p = state.personen.find(function (x) { return x.id === state.selectedId; });
+        if (!p) {
+            panel.innerHTML = '<p class="staff-empty">Selecteer een persoon links om het dossier te bekijken.</p>';
+            document.getElementById('btnNewEntry').disabled = true;
+            return;
+        }
+        var entries = p.entries || [];
+        var entriesHtml = entries.length
+            ? entries
+                  .map(function (e) {
+                      var del =
+                          canEdit
+                              ? '<button type="button" class="staff-dossier-del" data-entry="' +
+                                escapeHtml(e.id) +
+                                '" title="Verwijderen"><i class="fas fa-trash"></i></button>'
+                              : '';
+                      return (
+                          '<article class="staff-dossier-entry ' + dossierTypeClass(e.type) + '">' +
+                          '<div class="staff-dossier-entry-head">' +
+                          '<span class="staff-dossier-type">' + escapeHtml(dossierTypeLabel(e.type)) + '</span>' +
+                          '<time>' + escapeHtml(e.datum || formatLiveTime(e.createdAt)) + '</time>' +
+                          del +
+                          '</div>' +
+                          (e.titel ? '<h4>' + escapeHtml(e.titel) + '</h4>' : '') +
+                          '<p>' + escapeHtml(e.inhoud) + '</p>' +
+                          (e.door ? '<footer>Door: ' + escapeHtml(e.door) + '</footer>' : '') +
+                          '</article>'
+                      );
+                  })
+                  .join('')
+            : '<p class="staff-empty">Nog geen registraties voor deze persoon.</p>';
+
+        panel.innerHTML =
+            '<div class="staff-dossiers-detail-head">' +
+            '<div><h3>' + escapeHtml(p.naam) + '</h3>' +
+            (p.discord ? '<p class="staff-dossiers-person-disc">' + escapeHtml(p.discord) + '</p>' : '') +
+            '</div>' +
+            (canEdit
+                ? '<button type="button" class="staff-btn staff-btn-danger staff-btn-sm" id="btnDelPerson"><i class="fas fa-user-minus"></i></button>'
+                : '') +
+            '</div>' +
+            '<div class="staff-dossier-timeline">' + entriesHtml + '</div>';
+
+        if (canEdit) {
+            panel.querySelector('#btnDelPerson').addEventListener('click', function () {
+                if (!confirm('Persoon en alle registraties verwijderen?')) return;
+                state.personen = state.personen.filter(function (x) { return x.id !== p.id; });
+                state.selectedId = null;
+                persist();
+            });
+            panel.querySelectorAll('.staff-dossier-del').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (!confirm('Deze registratie verwijderen?')) return;
+                    var eid = btn.getAttribute('data-entry');
+                    p.entries = (p.entries || []).filter(function (e) { return e.id !== eid; });
+                    persist();
+                });
+            });
+        }
+    }
+
+    function openModal(title, fieldsHtml, onSubmit) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalForm').innerHTML = fieldsHtml;
+        document.getElementById('modal').hidden = false;
+        document.getElementById('modalForm').onsubmit = function (ev) {
+            ev.preventDefault();
+            onSubmit(new FormData(ev.target));
+        };
+    }
+
+    function closeModal() {
+        document.getElementById('modal').hidden = true;
+    }
+
+    document.querySelectorAll('[data-close]').forEach(function (el) {
+        el.addEventListener('click', closeModal);
+    });
+
+    function persist() {
+        saveDossiers({ personen: state.personen })
+            .then(function (data) {
+                state.personen = data.personen || [];
+                document.getElementById('dossiersMeta').textContent =
+                    'Opgeslagen · ' + (data.personen || []).length + ' personen · ' + formatLiveTime(data.updatedAt);
+                renderList();
+                renderDetail();
+            })
+            .catch(function (e) {
+                alert(e.message);
+            });
+    }
+
+    document.getElementById('btnNewPerson').addEventListener('click', function () {
+        openModal(
+            'Nieuwe persoon',
+            '<div class="staff-form-field"><label>Naam (in-game of display)</label><input name="naam" required></div>' +
+                '<div class="staff-form-field"><label>Discord (optioneel)</label><input name="discord" placeholder="@gebruiker"></div>',
+            function (fd) {
+                state.personen.push({
+                    id: uid('p'),
+                    naam: fd.get('naam'),
+                    discord: fd.get('discord') || '',
+                    entries: [],
+                });
+                state.selectedId = state.personen[state.personen.length - 1].id;
+                closeModal();
+                persist();
+            }
+        );
+    });
+
+    document.getElementById('btnNewEntry').addEventListener('click', function () {
+        var p = state.personen.find(function (x) { return x.id === state.selectedId; });
+        if (!p) return;
+        var today = new Date().toISOString().slice(0, 10);
+        openModal(
+            'Registratie — ' + p.naam,
+            '<div class="staff-form-field"><label>Type</label><select name="type" required>' +
+                '<option value="warn">Staffwarn</option>' +
+                '<option value="ontslag">Ontslag</option>' +
+                '<option value="bericht">Bericht / communicatie</option>' +
+                '<option value="notitie">Notitie</option></select></div>' +
+                '<div class="staff-form-field"><label>Datum</label><input type="date" name="datum" value="' + today + '" required></div>' +
+                '<div class="staff-form-field"><label>Titel (kort)</label><input name="titel" placeholder="Bijv. 1e staffwarn"></div>' +
+                '<div class="staff-form-field"><label>Omschrijving</label><textarea name="inhoud" rows="5" required placeholder="Wat is er gebeurd? Welke afspraken?"></textarea></div>' +
+                '<div class="staff-form-field"><label>Geregistreerd door</label><input name="door" value="' + escapeHtml(userName()) + '"></div>',
+            function (fd) {
+                if (!p.entries) p.entries = [];
+                p.entries.unshift({
+                    id: uid('e'),
+                    type: fd.get('type'),
+                    datum: fd.get('datum'),
+                    titel: fd.get('titel') || '',
+                    inhoud: fd.get('inhoud'),
+                    door: fd.get('door') || userName(),
+                    createdAt: new Date().toISOString(),
+                });
+                closeModal();
+                persist();
+            }
+        );
+    });
+
+    document.getElementById('searchInput').addEventListener('input', renderList);
+
+    fetchDossiers()
+        .then(function (data) {
+            state.personen = data.personen || [];
+            document.getElementById('dossiersMeta').textContent =
+                state.personen.length + ' personen · ' + (data.updatedAt ? formatLiveTime(data.updatedAt) : '—');
+            if (!canEdit) {
+                document.getElementById('dossiersMeta').textContent += ' · alleen lezen (beheer mag bewerken)';
+            }
+            renderList();
+        })
+        .catch(function (e) {
+            document.getElementById('personList').innerHTML =
+                '<p class="staff-empty staff-discord-err">' + escapeHtml(e.message) + '</p>';
+        });
+</script>
+</body>
+</html>

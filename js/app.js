@@ -157,6 +157,7 @@ function renderHeader(active) {
         '<a href="/regels.html"' + (active === 'regels' ? ' class="active"' : '') + '>Regels</a>' +
         '<a href="/functies.html"' + (active === 'functies' ? ' class="active"' : '') + '>Staff functies</a>' +
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
+        '<a href="/dossiers.html"' + (active === 'dossiers' ? ' class="active"' : '') + '>Dossiers</a>' +
         '</nav>' +
         '<div class="staff-actions">' +
         '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + rankLabel + '</span>' +
@@ -190,6 +191,39 @@ function renderRegels(regels, container) {
             );
         })
         .join('');
+}
+
+async function fetchDossiers() {
+    const res = await fetch(SITE_API + '/api/staff-dossiers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Dossiers laden mislukt');
+    return data;
+}
+
+async function saveDossiers(dossiers) {
+    const res = await fetch(SITE_API + '/api/staff-dossiers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken(), dossiers: dossiers }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Opslaan mislukt');
+    return data.dossiers;
+}
+
+function dossierTypeLabel(type) {
+    if (type === 'warn') return 'Staffwarn';
+    if (type === 'ontslag') return 'Ontslag';
+    if (type === 'bericht') return 'Bericht';
+    return 'Notitie';
+}
+
+function dossierTypeClass(type) {
+    return 'staff-dossier-entry--' + (type || 'notitie');
 }
 
 async function fetchDiscordRoleNames() {

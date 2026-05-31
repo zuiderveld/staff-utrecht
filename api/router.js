@@ -7,6 +7,7 @@ const routes = {
   'site-data': require('../server/lib/routes/site-data'),
   'staff-team': require('../server/lib/routes/staff-team'),
   'discord-role-names': require('../server/lib/routes/discord-role-names'),
+  'staff-dossiers': require('../server/lib/routes/staff-dossiers'),
 };
 
 module.exports = async function handler(req, res) {

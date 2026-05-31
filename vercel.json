@@ -6,6 +6,7 @@
     { "source": "/api/staff-auth", "destination": "/api/router?route=staff-auth" },
     { "source": "/api/site-data", "destination": "/api/router?route=site-data" },
     { "source": "/api/staff-team", "destination": "/api/router?route=staff-team" },
-    { "source": "/api/discord-role-names", "destination": "/api/router?route=discord-role-names" }
+    { "source": "/api/discord-role-names", "destination": "/api/router?route=discord-role-names" },
+    { "source": "/api/staff-dossiers", "destination": "/api/router?route=staff-dossiers" }
   ]
 }
