@@ -7,6 +7,7 @@ function getCallRoomId(channel) {
 let supportConfig = null;
 let connectedChannelId = null;
 let channelPresence = {};
+let roomPeersCache = {};
 let presenceTimer = null;
 
 function applySupportAccessUI() {
@@ -111,6 +112,26 @@ function getLiveRosterForChannel(ch) {
     return [];
 }
 
+async function fetchRoomPeers(roomId) {
+    const res = await fetch(
+        SITE_API +
+            '/api/rtc-room?action=peers&roomId=' +
+            encodeURIComponent(roomId) +
+            '&accessToken=' +
+            encodeURIComponent(accessToken())
+    );
+    const data = await res.json();
+    if (!res.ok) return [];
+    return (data.peers || []).map(function (p) {
+        return {
+            id: String(p.id),
+            name: p.name || 'Onbekend',
+            avatarUrl: p.avatarUrl || null,
+            isStaff: !!p.isStaff,
+        };
+    });
+}
+
 async function refreshChannelPresence() {
     if (!isLoggedIn()) return;
     try {
@@ -122,8 +143,18 @@ async function refreshChannelPresence() {
         const data = await res.json();
         if (res.ok && data.presence) {
             channelPresence = data.presence;
-            renderChannelPicker(supportConfig?.channels || []);
         }
+        if (connectedChannelId && supportConfig) {
+            const ch = (supportConfig.channels || []).find(function (c) {
+                return c.id === connectedChannelId;
+            });
+            if (ch) {
+                const live = await fetchRoomPeers(getCallRoomId(ch));
+                roomPeersCache[ch.id] = live;
+                channelPresence[ch.id] = live;
+            }
+        }
+        renderChannelPicker(supportConfig?.channels || []);
     } catch (e) {
         /* stil falen */
     }
@@ -153,7 +184,7 @@ async function refreshSupportUI() {
 }
 
 function getMembersInChannel(ch) {
-    let list = (channelPresence[ch.id] || []).map(function (p) {
+    let list = (roomPeersCache[ch.id] || channelPresence[ch.id] || []).map(function (p) {
         return {
             id: String(p.id),
             name: p.name || 'Onbekend',
@@ -165,7 +196,7 @@ function getMembersInChannel(ch) {
         list = mergeMemberEntry(list, p);
     });
     const myId = discordId();
-    if (myId) {
+    if (connectedChannelId === ch.id && myId) {
         list = mergeMemberEntry(list, {
             id: myId,
             name: userName(),
@@ -323,6 +354,7 @@ function connectToChannel(channel) {
 }
 
 function disconnectFromChannel() {
+    if (connectedChannelId) delete roomPeersCache[connectedChannelId];
     connectedChannelId = null;
     stopPresencePoll();
     stopURPCall('urpCallGuest');

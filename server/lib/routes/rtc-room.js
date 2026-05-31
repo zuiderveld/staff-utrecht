@@ -1,5 +1,6 @@
 const { verifyGuildMember, assertSupportAccess } = require('../discord-staff');
-const { loadRoom, updateRoom, pruneRoom } = require('../rtc-room');
+const { loadRoom, updateRoom } = require('../rtc-room');
+const { upsertPeer, removePeer, listPeersInRoom, peerFromMember } = require('../rtc-peers');
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,6 +34,18 @@ function iceServersFromEnv() {
   return servers;
 }
 
+function rosterForMember(roomId, member) {
+  const pid = String(member.discordId);
+  return listPeersInRoom(roomId).then((all) =>
+    all.filter((p) => p.id !== pid).map((p) => ({
+      id: p.id,
+      name: p.name,
+      avatarUrl: p.avatarUrl,
+      isStaff: p.isStaff,
+    }))
+  );
+}
+
 module.exports = async function handler(req, res) {
   cors(res);
   res.setHeader('Cache-Control', 'no-store');
@@ -51,37 +64,39 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ iceServers: iceServersFromEnv(), brand: 'URP Call' });
     }
 
+    if (action === 'peers') {
+      await upsertPeer(roomId, peerFromMember(member));
+      const all = await listPeersInRoom(roomId);
+      return res.status(200).json({
+        peers: all.map((p) => ({
+          id: p.id,
+          name: p.name,
+          avatarUrl: p.avatarUrl,
+          isStaff: p.isStaff,
+        })),
+      });
+    }
+
     if (action === 'join' && req.method === 'POST') {
       if (!member.isStaff) assertSupportAccess(member);
-      await updateRoom(roomId, (state) => {
-        state.peers = state.peers || {};
-        state.peers[String(member.discordId)] = {
-          id: String(member.discordId),
-          name: member.username,
-          avatarUrl: member.avatarUrl,
-          discordUsername: member.discordUsername,
-          isStaff: member.isStaff,
-          joinedAt: state.peers[String(member.discordId)]?.joinedAt || new Date().toISOString(),
-          lastSeen: new Date().toISOString(),
-        };
+      const bodyPeer = req.body?.peer;
+      await upsertPeer(roomId, {
+        ...peerFromMember(member),
+        name: bodyPeer?.name || member.username,
+        avatarUrl: bodyPeer?.avatarUrl || member.avatarUrl,
+        isStaff: bodyPeer?.isStaff ?? member.isStaff,
       });
-      return res.status(200).json({ ok: true, peerId: member.discordId });
+      const roster = await rosterForMember(roomId, member);
+      return res.status(200).json({ ok: true, peerId: member.discordId, roster });
     }
 
     if (action === 'leave' && req.method === 'POST') {
-      await updateRoom(roomId, (state) => {
-        if (state.peers) delete state.peers[String(member.discordId)];
-      });
+      await removePeer(roomId, member.discordId);
       return res.status(200).json({ ok: true });
     }
 
     if (action === 'heartbeat' && req.method === 'POST') {
-      await updateRoom(roomId, (state) => {
-        const pid = String(member.discordId);
-        if (state.peers?.[pid]) {
-          state.peers[pid].lastSeen = new Date().toISOString();
-        }
-      });
+      await upsertPeer(roomId, peerFromMember(member));
       return res.status(200).json({ ok: true });
     }
 
@@ -99,29 +114,19 @@ module.exports = async function handler(req, res) {
           data,
           at: new Date().toISOString(),
         });
-        const pid = String(member.discordId);
-        if (state.peers?.[pid]) {
-          state.peers[pid].lastSeen = new Date().toISOString();
-        }
       });
+      await upsertPeer(roomId, peerFromMember(member));
       return res.status(200).json({ ok: true, id: sigId });
     }
 
     if (action === 'poll') {
       const since = req.body?.since || req.query?.since || '';
-      let roster = [];
-      let signals = [];
-      await updateRoom(roomId, (state) => {
-        state.peers = state.peers || {};
-        const pid = String(member.discordId);
-        if (state.peers[pid]) {
-          state.peers[pid].lastSeen = new Date().toISOString();
-        }
-        roster = Object.values(state.peers).filter((p) => String(p.id) !== pid);
-        signals = (state.signals || []).filter(
-          (s) => s.to === member.discordId && (!since || s.id > since)
-        );
-      });
+      await upsertPeer(roomId, peerFromMember(member));
+      const roster = await rosterForMember(roomId, member);
+      const state = await loadRoom(roomId);
+      const signals = (state.signals || []).filter(
+        (s) => s.to === member.discordId && (!since || s.id > since)
+      );
       return res.status(200).json({ roster, signals, peerId: member.discordId });
     }
 

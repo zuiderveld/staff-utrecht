@@ -498,7 +498,7 @@ URPCall.prototype.start = async function () {
         await this._audioCtx.resume();
     }
     this.startVoiceMonitoring();
-    await this.api('join', {
+    const joinRes = await this.api('join', {
         peer: {
             id: this.peerId,
             name: this.displayName,
@@ -506,6 +506,13 @@ URPCall.prototype.start = async function () {
             isStaff: this.isStaff,
         },
     });
+    if (joinRes.roster && joinRes.roster.length) {
+        this._lastRoster = joinRes.roster;
+        this.updateParticipants(joinRes.roster);
+        if (typeof window.onURPCallRosterChange === 'function') {
+            window.onURPCallRosterChange(this.roomId, joinRes.roster);
+        }
+    }
     this.updateParticipants([]);
     this.setStatus('Verbonden — je kunt alleen wachten of al praten zodra iemand joint');
     const self = this;

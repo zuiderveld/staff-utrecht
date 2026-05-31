@@ -1,6 +1,6 @@
 const { verifyGuildMember } = require('../discord-staff');
 const { readChannelsConfig } = require('../support-queue');
-const { loadRoom, listPeersForDisplay } = require('../rtc-room');
+const { listPeersInRoom } = require('../rtc-peers');
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,9 +24,8 @@ function roomIdForChannel(ch) {
 async function buildPresence(channels) {
   const presence = {};
   for (const ch of channels) {
-    const state = await loadRoom(roomIdForChannel(ch));
-    const peers = listPeersForDisplay(state);
-    presence[ch.id] = Object.values(peers || {}).map((p) => ({
+    const all = await listPeersInRoom(roomIdForChannel(ch));
+    presence[ch.id] = all.map((p) => ({
       id: String(p.id),
       name: p.name || 'Onbekend',
       avatarUrl: p.avatarUrl || null,
