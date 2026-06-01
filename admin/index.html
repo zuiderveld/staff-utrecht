@@ -136,8 +136,11 @@
         applyMaintState(s);
         const el = document.getElementById('maintStatus');
         if (s._storage === 'default') {
-            el.textContent = 'Let op: zet BLOB_READ_WRITE_TOKEN in Vercel om onderhoud op te slaan.';
+            el.textContent = 'Let op: zet BLOB_READ_WRITE_TOKEN in Vercel (staff-project) en redeploy.';
             el.style.color = '#fca5a5';
+        } else if (s._storage === 'blob-empty') {
+            el.textContent = 'Blob is gekoppeld. Klik Opslaan om onderhoud permanent op te slaan.';
+            el.style.color = '#fbbf24';
         } else {
             el.textContent = 'Laatst geladen: ' + (s.updatedAt ? formatLiveTime(s.updatedAt) : '—');
             el.style.color = '#6b7280';

@@ -63,7 +63,13 @@ async function getMaintenanceState() {
   }
   const fromBlob = await loadFromBlob();
   if (fromBlob) return { ...fromBlob, _storage: 'blob' };
-  return { ...readDefaultFile(), _storage: 'default' };
+  const base = { ...readDefaultFile() };
+  const hasBlobToken = !!process.env.BLOB_READ_WRITE_TOKEN;
+  return {
+    ...base,
+    _storage: hasBlobToken ? 'blob-empty' : 'default',
+    _blobConfigured: hasBlobToken,
+  };
 }
 
 function normalizeState(input) {
