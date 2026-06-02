@@ -1,4 +1,4 @@
-const { exchangeCode, verifyAccessToken } = require('../discord-staff');
+const { exchangeCode, verifyAccessToken, verifyOnderwereldAccess } = require('../discord-staff');
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,8 +22,13 @@ module.exports = async function handler(req, res) {
 
     if (!accessToken) return res.status(400).json({ error: 'Geen Discord code of token' });
 
-    const result = await verifyAccessToken(accessToken);
-    return res.status(200).json(result);
+    const loginType = req.body?.loginType === 'onderwereld' ? 'onderwereld' : 'staff';
+    const result =
+      loginType === 'onderwereld'
+        ? await verifyOnderwereldAccess(accessToken)
+        : await verifyAccessToken(accessToken);
+
+    return res.status(200).json({ ...result, loginType });
   } catch (err) {
     console.error('staff-auth:', err);
     return res.status(403).json({ error: err.message || 'Inloggen mislukt' });

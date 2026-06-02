@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URP Staff Portaal</title>
+    <title>URP Portaal</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="/css/staff.css">
@@ -12,88 +12,179 @@
         .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
         .login-box {
             background: rgba(24, 20, 36, 0.95); border: 1px solid rgba(139, 92, 246, 0.4);
-            border-radius: 28px; padding: 2.5rem; max-width: 420px; width: 100%; text-align: center;
+            border-radius: 28px; padding: 2.5rem; max-width: 460px; width: 100%; text-align: center;
         }
         .login-box img { width: 100px; border-radius: 16px; margin-bottom: 1rem; }
         .login-box h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
         .login-box h1 span { color: #a78bfa; }
-        .login-box > p { color: #9ca3af; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .login-box > p.sub { color: #9ca3af; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .stap-label { font-size: 0.85rem; color: #9ca3af; margin-bottom: 0.8rem; text-align: left; }
+        .portaal-keuze { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+        .keuze {
+            text-align: center; padding: 1rem 0.4rem; background: rgba(255,255,255,0.05);
+            border-radius: 14px; font-size: 0.75rem; border: 2px solid transparent; cursor: pointer; transition: 0.2s;
+        }
+        .keuze:hover { background: rgba(255,255,255,0.1); }
+        .keuze.selected { border-color: #a78bfa; background: rgba(139,92,246,0.15); }
+        .keuze i { font-size: 1.5rem; display: block; margin-bottom: 0.3rem; }
+        .keuze.overheid i { color: #0066ff; }
+        .keuze.staff i { color: #a78bfa; }
+        .keuze.onderwereld i { color: #c084fc; }
+        .gekozen-tekst { font-size: 0.8rem; color: #a78bfa; margin-bottom: 1rem; min-height: 1.2rem; text-align: left; }
         .btn-discord {
             width: 100%; padding: 1rem; border: none; border-radius: 50px;
             background: #5865f2; color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer;
             display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
         }
         .btn-discord:hover { filter: brightness(1.08); }
-        .btn-discord:disabled { opacity: 0.6; cursor: wait; }
+        .btn-discord:disabled { opacity: 0.45; cursor: not-allowed; }
+        #discordStap { display: none; }
         .login-error { color: #fca5a5; font-size: 0.85rem; margin-top: 1rem; display: none; }
         .login-error.show { display: block; }
-        .login-hint { font-size: 0.75rem; color: #6b7280; margin-top: 1.25rem; }
+        .login-hint { font-size: 0.75rem; color: #6b7280; margin-top: 1.25rem; line-height: 1.4; }
+        @media (max-width: 420px) { .portaal-keuze { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 <div class="staff-bg"></div>
 <div class="login-wrap">
     <div class="login-box">
-        <img src="/assets/favicon.png" alt="URP Staff">
-        <h1>URP <span>Staff</span></h1>
-        <p>Log in met Discord · alleen staff met de juiste serverrol</p>
-        <button type="button" class="btn-discord" id="btnDiscord">
-            <i class="fab fa-discord"></i> Inloggen met Discord
-        </button>
-        <p class="login-error" id="loginError"></p>
-        <p class="login-hint">Utrecht Roleplay · Staff Portaal</p>
+        <img src="/assets/favicon.png" alt="URP">
+        <h1>URP <span>Portaal</span></h1>
+        <p class="sub">Staff · Onderwereld · Overheid</p>
+
+        <div id="errorMessage" class="login-error"><i class="fas fa-exclamation-triangle"></i> <span id="errorText"></span></div>
+
+        <p class="stap-label"><strong>Stap 1</strong> — Kies waarmee je wilt inloggen</p>
+        <div class="portaal-keuze" id="portaalKiezer">
+            <div class="keuze overheid" data-portaal="overheid" onclick="kiesPortaal('overheid')">
+                <i class="fas fa-landmark"></i> Overheid
+            </div>
+            <div class="keuze staff" data-portaal="staff" onclick="kiesPortaal('staff')">
+                <i class="fas fa-user-shield"></i> Staff
+            </div>
+            <div class="keuze onderwereld" data-portaal="onderwereld" onclick="kiesPortaal('onderwereld')">
+                <i class="fas fa-user-secret"></i> Onderwereld
+            </div>
+        </div>
+
+        <p class="gekozen-tekst" id="gekozenPortaalTekst"></p>
+
+        <div id="discordStap">
+            <p class="stap-label"><strong>Stap 2</strong> — Inloggen met Discord</p>
+            <button type="button" class="btn-discord" id="btnDiscord" onclick="startDiscordLogin()">
+                <i class="fab fa-discord"></i> Inloggen met Discord
+            </button>
+        </div>
+
+        <p class="login-hint" id="hintText"><i class="fas fa-shield-alt"></i> Kies een portaal om verder te gaan.</p>
     </div>
 </div>
 <script src="/js/config.js"></script>
 <script src="/js/app.js"></script>
 <script>
-    (function () {
-        const params = new URLSearchParams(location.search);
-        if (params.get('redirect')) {
-            sessionStorage.setItem('urpStaffRedirect', params.get('redirect'));
+(function () {
+    const PORTAAL_NAMEN = { overheid: 'Overheid', staff: 'Staff', onderwereld: 'Onderwereld Coordinator' };
+    const PORTAAL_HINTS = {
+        overheid: 'Je wordt doorgestuurd naar het Overheid Portaal.',
+        staff: 'Je hebt een URP staff Discord-rol nodig.',
+        onderwereld: 'Alleen Onderwereld Coordinator (Discord-rol) heeft toegang.',
+    };
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('redirect')) sessionStorage.setItem('urpStaffRedirect', params.get('redirect'));
+
+    let gekozenPortaal = sessionStorage.getItem('urpStaffGewenstePortaal') || null;
+    const redirectPath = params.get('redirect') || sessionStorage.getItem('urpStaffRedirect');
+    if (redirectPath && redirectPath.indexOf('onderwereld') !== -1 && !gekozenPortaal) {
+        gekozenPortaal = 'onderwereld';
+        sessionStorage.setItem('urpStaffGewenstePortaal', 'onderwereld');
+    }
+
+    window.kiesPortaal = function (portaal) {
+        gekozenPortaal = portaal;
+        sessionStorage.setItem('urpStaffGewenstePortaal', portaal);
+        document.querySelectorAll('.keuze').forEach(function (el) {
+            el.classList.toggle('selected', el.dataset.portaal === portaal);
+        });
+        document.getElementById('gekozenPortaalTekst').textContent = 'Gekozen: ' + (PORTAAL_NAMEN[portaal] || portaal);
+        document.getElementById('hintText').innerHTML = '<i class="fas fa-shield-alt"></i> ' + (PORTAAL_HINTS[portaal] || '');
+
+        if (portaal === 'overheid') {
+            window.location.href = OVERHEID_URL;
+            return;
         }
+        document.getElementById('discordStap').style.display = 'block';
+    };
 
-        const errEl = document.getElementById('loginError');
-        const btn = document.getElementById('btnDiscord');
-
-        function showError(msg) {
-            errEl.textContent = msg;
-            errEl.classList.add('show');
+    window.startDiscordLogin = function () {
+        if (!gekozenPortaal || gekozenPortaal === 'overheid') {
+            showError('Kies eerst Staff of Onderwereld.');
+            return;
         }
+        window.location.href = getDiscordAuthUrl();
+    };
 
-        function goAfterLogin() {
-            const dest = sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html';
+    function showError(msg) {
+        document.getElementById('errorText').textContent = msg;
+        document.getElementById('errorMessage').classList.add('show');
+    }
+
+    function goAfterLogin(data) {
+        const redirect = sessionStorage.getItem('urpStaffRedirect');
+        sessionStorage.removeItem('urpStaffRedirect');
+        sessionStorage.removeItem('urpStaffGewenstePortaal');
+        if (redirect) {
+            location.replace(redirect);
+            return;
+        }
+        if (data.loginType === 'onderwereld' || gekozenPortaal === 'onderwereld') {
+            location.replace('/onderwereld.html');
+            return;
+        }
+        location.replace('/dashboard.html');
+    }
+
+    async function handleCode(code) {
+        document.getElementById('btnDiscord').disabled = true;
+        try {
+            const data = await discordAuthWithCode(code);
+            history.replaceState(null, '', '/');
+            goAfterLogin(data);
+        } catch (e) {
+            showError(e.message);
+            document.getElementById('btnDiscord').disabled = false;
+        }
+    }
+
+    const code = params.get('code');
+    if (code) {
+        document.getElementById('discordStap').style.display = 'block';
+        handleCode(code);
+        return;
+    }
+
+    if (isLoggedIn()) {
+        if (isOnderwereldCoordinator() && staffLoginType() === 'onderwereld' && !isStaff()) {
+            location.replace('/onderwereld.html');
+            return;
+        }
+        if (isStaff()) {
+            location.replace(sessionStorage.getItem('urpStaffRedirect') || '/dashboard.html');
             sessionStorage.removeItem('urpStaffRedirect');
-            location.replace(dest);
-        }
-
-        async function handleCode(code) {
-            btn.disabled = true;
-            try {
-                await discordAuthWithCode(code);
-                history.replaceState(null, '', '/');
-                goAfterLogin();
-            } catch (e) {
-                showError(e.message);
-                btn.disabled = false;
-            }
-        }
-
-        const code = params.get('code');
-        if (code) {
-            handleCode(code);
             return;
         }
+    }
 
-        if (isLoggedIn()) {
-            goAfterLogin();
-            return;
-        }
-
-        btn.onclick = function () {
-            window.location.href = getDiscordAuthUrl();
-        };
-    })();
+    if (gekozenPortaal && gekozenPortaal !== 'overheid') {
+        document.querySelectorAll('.keuze').forEach(function (el) {
+            el.classList.toggle('selected', el.dataset.portaal === gekozenPortaal);
+        });
+        document.getElementById('gekozenPortaalTekst').textContent = 'Gekozen: ' + (PORTAAL_NAMEN[gekozenPortaal] || gekozenPortaal);
+        document.getElementById('hintText').innerHTML = '<i class="fas fa-shield-alt"></i> ' + (PORTAAL_HINTS[gekozenPortaal] || '');
+        document.getElementById('discordStap').style.display = 'block';
+    }
+})();
 </script>
 </body>
 </html>

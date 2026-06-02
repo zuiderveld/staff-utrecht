@@ -17,6 +17,15 @@ function getDossierViewRoleIds() {
   return rolesFile.dossierViewRoleIds || [];
 }
 
+function getOnderwereldRoleId() {
+  return process.env.DISCORD_ROLE_ONDERWERELD || rolesFile.onderwereldCoordinatorRoleId || null;
+}
+
+function isOnderwereldCoordinator(userRoles) {
+  const id = getOnderwereldRoleId();
+  return !!(id && userRoles.includes(id));
+}
+
 function canViewDossiers(userRoles) {
   const ids = getDossierViewRoleIds();
   return ids.some((id) => userRoles.includes(id));
@@ -88,8 +97,9 @@ function resolveAccess(userRoles) {
 
   const isBeheer = beheerIds.some((id) => userRoles.includes(id));
   const dossiers = canViewDossiers(userRoles);
+  const onderwereld = isOnderwereldCoordinator(userRoles);
 
-  return { rank, isBeheer, canViewDossiers: dossiers };
+  return { rank, isBeheer, canViewDossiers: dossiers, isOnderwereldCoordinator: onderwereld };
 }
 
 function avatarUrlFromUser(user) {
@@ -111,7 +121,8 @@ async function verifyGuildMember(accessToken) {
   const member = await getGuildMember(user.id);
   const userRoles = member.roles || [];
   const displayName = member.nick || user.global_name || user.username;
-  const { rank, isBeheer, canViewDossiers: mayViewDossiers } = resolveAccess(userRoles);
+  const { rank, isBeheer, canViewDossiers: mayViewDossiers, isOnderwereldCoordinator: onderwereld } =
+    resolveAccess(userRoles);
   const isStaff = !!(rank || isBeheer);
 
   return {
@@ -123,8 +134,9 @@ async function verifyGuildMember(accessToken) {
     isStaff,
     isBeheer,
     isModerator: isStaff,
+    isOnderwereldCoordinator: onderwereld,
     rankId: rank?.rankId || null,
-    rankNaam: rank?.rankNaam || (isBeheer ? 'Beheer' : null),
+    rankNaam: rank?.rankNaam || (isBeheer ? 'Beheer' : onderwereld ? 'Onderwereld Coordinator' : null),
     canViewDossiers: !!mayViewDossiers,
   };
 }
@@ -143,6 +155,14 @@ async function verifyAccessToken(accessToken) {
   const info = await verifyGuildMember(accessToken);
   if (!info.isStaff) {
     throw new Error('Geen staff Discord-rol gevonden op deze server.');
+  }
+  return info;
+}
+
+async function verifyOnderwereldAccess(accessToken) {
+  const info = await verifyGuildMember(accessToken);
+  if (!info.isOnderwereldCoordinator) {
+    throw new Error('Geen toegang. Alleen Onderwereld Coordinator heeft toegang tot dit onderdeel.');
   }
   return info;
 }
@@ -282,6 +302,7 @@ async function getGuildRolesMap() {
 module.exports = {
   exchangeCode,
   verifyAccessToken,
+  verifyOnderwereldAccess,
   verifyDossiersAccess,
   verifyGuildMember,
   getBeheerRoleIds,

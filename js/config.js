@@ -1,5 +1,6 @@
 const SITE_API = window.location.origin;
 const DISCORD_CLIENT_ID = '1105558581304098867';
+const OVERHEID_URL = 'https://overheid.utrechtroleplay.eu/';
 
 function discordRedirectUri() {
     return window.location.origin + '/';

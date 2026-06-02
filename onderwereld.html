@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URP Staff | Onderwereld Coordinator</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/staff.css">
+    <script src="/js/maintenance-check.js"></script>
+    <style>
+        .ow-updated {
+            display: inline-flex; align-items: center; gap: 8px; margin-top: 0.75rem;
+            padding: 0.5rem 1rem; background: rgba(139,92,246,0.15);
+            border: 1px solid rgba(139,92,246,0.35); border-radius: 999px; font-size: 0.85rem; color: #c4b5fd;
+        }
+        .ow-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0; justify-content: center; }
+        .ow-tab {
+            background: rgba(255,255,255,0.05); border: 1px solid #2a2c35; color: #ccc;
+            padding: 0.55rem 1rem; border-radius: 999px; cursor: pointer; font-size: 0.85rem;
+        }
+        .ow-tab:hover, .ow-tab.active { background: rgba(139,92,246,0.2); border-color: #8b5cf6; color: #e9d5ff; }
+        .ow-panel { display: none; }
+        .ow-panel.active { display: block; }
+        .ow-price-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 0.5rem; }
+        .ow-price-table th, .ow-price-table td { padding: 0.55rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .ow-price-table th { color: #a78bfa; font-size: 0.75rem; text-transform: uppercase; }
+        .ow-price-table tr:hover td { background: rgba(139,92,246,0.06); }
+        .ow-price { color: #34d399; font-weight: 600; white-space: nowrap; }
+        .ow-code { font-size: 0.75rem; color: #6b7280; font-family: ui-monospace, monospace; }
+        .ow-tag {
+            display: inline-block; font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 6px;
+            background: rgba(255,170,51,0.15); color: #ffaa33; margin-left: 0.35rem;
+        }
+    </style>
+</head>
+<body>
+<div class="staff-bg"></div>
+<div id="siteHeader"></div>
+<main class="staff-container">
+    <div class="staff-hero">
+        <h2>Onderwereld <span>Coordinator</span></h2>
+        <p>Gangshop prijzen — wapens, ammo, extra & attachments</p>
+        <div class="ow-updated"><i class="fas fa-clock"></i> Laatst geupdate: <strong id="lastUpdated"></strong></div>
+    </div>
+    <div class="ow-tabs" id="mainTabs"></div>
+    <div id="content"></div>
+</main>
+<footer class="staff-footer">© Utrecht Roleplay · Onderwereld Coordinator — vertrouwelijk</footer>
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/gangshop-data.js"></script>
+<script>
+    if (!requireOnderwereldAccess()) throw 0;
+    mountHeader('onderwereld');
+    document.getElementById('lastUpdated').textContent = GANGSHOP_DATA.lastUpdated;
+
+    function fmtPrice(n) { return '€' + Number(n).toLocaleString('nl-NL'); }
+    function itemLabel(item) { return item.label || item.name.replace(/^WEAPON_/, '').replace(/_/g, ' '); }
+
+    function renderTable(items) {
+        if (!items || !items.length) return '<p class="staff-empty">Geen items.</p>';
+        return '<table class="ow-price-table"><thead><tr><th>Item</th><th>Code</th><th>Prijs</th></tr></thead><tbody>' +
+            items.map(function (item) {
+                var reg = item.registered ? '<span class="ow-tag">Geregistreerd</span>' : '';
+                return '<tr><td>' + escapeHtml(itemLabel(item)) + reg + '</td><td class="ow-code">' +
+                    escapeHtml(item.name) + '</td><td class="ow-price">' + fmtPrice(item.price) + '</td></tr>';
+            }).join('') + '</tbody></table>';
+    }
+
+    function renderSection(section) {
+        return '<div class="staff-card" style="margin-bottom:1rem"><div class="staff-card-title"><i class="fas fa-box"></i> ' +
+            escapeHtml(section.title) + '</div>' + renderTable(section.items) + '</div>';
+    }
+
+    function renderLevel(level) {
+        var data = GANGSHOP_DATA.levels[level];
+        var order = ['wapens', 'ammo', 'extra', 'suppressors', 'scopes', 'grips', 'magazines'];
+        return order.map(function (key) { return data[key] ? renderSection(data[key]) : ''; }).join('');
+    }
+
+    function renderSpecial(key) {
+        return GANGSHOP_DATA.special[key].sections.map(renderSection).join('');
+    }
+
+    var tabs = [
+        { id: 'level-1', label: 'Gang Level 1', render: function () { return renderLevel(1); } },
+        { id: 'level-2', label: 'Gang Level 2', render: function () { return renderLevel(2); } },
+        { id: 'level-3', label: 'Gang Level 3', render: function () { return renderLevel(3); } },
+        { id: 'level-4', label: 'Gang Level 4', render: function () { return renderLevel(4); } },
+        { id: 'level-5', label: 'Gang Level 5', render: function () { return renderLevel(5); } },
+        { id: 'vip', label: 'VIP', render: function () { return renderSpecial('vip'); } },
+        { id: 'vip-karel', label: 'Wapenhandelaar Karel', render: function () { return renderSpecial('vipKarel'); } },
+        { id: 'blackmarket', label: 'Blackmarket', render: function () { return renderSpecial('blackmarket'); } },
+    ];
+
+    var tabsEl = document.getElementById('mainTabs');
+    var contentEl = document.getElementById('content');
+
+    tabs.forEach(function (tab, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ow-tab' + (i === 0 ? ' active' : '');
+        btn.textContent = tab.label;
+        btn.dataset.tab = tab.id;
+        btn.onclick = function () { activateTab(tab.id); };
+        tabsEl.appendChild(btn);
+
+        var panel = document.createElement('div');
+        panel.className = 'ow-panel' + (i === 0 ? ' active' : '');
+        panel.id = tab.id;
+        panel.innerHTML = tab.render();
+        contentEl.appendChild(panel);
+    });
+
+    function activateTab(id) {
+        document.querySelectorAll('.ow-tab').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === id); });
+        document.querySelectorAll('.ow-panel').forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    }
+</script>
+</body>
+</html>

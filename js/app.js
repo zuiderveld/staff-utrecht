@@ -34,6 +34,14 @@ function discordTag() {
     return sessionStorage.getItem('urpStaffDiscordTag') || '';
 }
 
+function isOnderwereldCoordinator() {
+    return sessionStorage.getItem('urpStaffOnderwereld') === 'true';
+}
+
+function staffLoginType() {
+    return sessionStorage.getItem('urpStaffLoginType') || 'staff';
+}
+
 function canViewDossiers() {
     return sessionStorage.getItem('urpStaffCanViewDossiers') === 'true';
 }
@@ -44,6 +52,9 @@ function setSession(data) {
     sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
     sessionStorage.setItem('urpStaffIsStaff', data.isStaff ? 'true' : 'false');
     sessionStorage.setItem('urpStaffCanViewDossiers', data.canViewDossiers ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffOnderwereld', data.isOnderwereldCoordinator ? 'true' : 'false');
+    if (data.loginType) sessionStorage.setItem('urpStaffLoginType', data.loginType);
+    else sessionStorage.removeItem('urpStaffLoginType');
     if (data.discordId) sessionStorage.setItem('urpStaffDiscordId', data.discordId);
     else sessionStorage.removeItem('urpStaffDiscordId');
     if (data.avatarUrl) sessionStorage.setItem('urpStaffAvatarUrl', data.avatarUrl);
@@ -64,7 +75,10 @@ function logout() {
     sessionStorage.removeItem('urpStaffAvatarUrl');
     sessionStorage.removeItem('urpStaffDiscordTag');
     sessionStorage.removeItem('urpStaffCanViewDossiers');
+    sessionStorage.removeItem('urpStaffOnderwereld');
+    sessionStorage.removeItem('urpStaffLoginType');
     sessionStorage.removeItem('urpStaffRedirect');
+    sessionStorage.removeItem('urpStaffGewenstePortaal');
     window.location.replace('/');
 }
 
@@ -73,6 +87,21 @@ function requireDossiersAccess() {
     if (!canViewDossiers()) {
         alert('Geen toegang tot staff dossiers. Alleen Lead Coördinator, Beheer Team en Founder.');
         window.location.replace('/dashboard.html');
+        return false;
+    }
+    return true;
+}
+
+function requireOnderwereldAccess() {
+    if (!isLoggedIn()) {
+        sessionStorage.setItem('urpStaffGewenstePortaal', 'onderwereld');
+        sessionStorage.setItem('urpStaffRedirect', '/onderwereld.html');
+        window.location.replace('/');
+        return false;
+    }
+    if (!isOnderwereldCoordinator()) {
+        alert('Geen toegang. Alleen Onderwereld Coordinator heeft toegang tot deze pagina.');
+        window.location.replace(isStaff() ? '/dashboard.html' : '/');
         return false;
     }
     return true;
@@ -102,11 +131,16 @@ function requireBeheer() {
     return true;
 }
 
-async function discordAuthWithCode(code) {
+async function discordAuthWithCode(code, loginTypeArg) {
+    const type = loginTypeArg || sessionStorage.getItem('urpStaffGewenstePortaal') || 'staff';
     const res = await fetch(SITE_API + '/api/staff-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code, redirectUri: discordRedirectUri() }),
+        body: JSON.stringify({
+            code: code,
+            redirectUri: discordRedirectUri(),
+            loginType: type === 'onderwereld' ? 'onderwereld' : 'staff',
+        }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Discord inloggen mislukt');
@@ -175,6 +209,9 @@ function renderHeader(active) {
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
         (canViewDossiers()
             ? '<a href="/dossiers.html"' + (active === 'dossiers' ? ' class="active"' : '') + '>Dossiers</a>'
+            : '') +
+        (isOnderwereldCoordinator()
+            ? '<a href="/onderwereld.html"' + (active === 'onderwereld' ? ' class="active"' : '') + '>Onderwereld</a>'
             : '') +
         '</nav>' +
         '<div class="staff-actions">' +

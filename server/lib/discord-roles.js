@@ -26,4 +26,7 @@ module.exports = {
     '1502448635709751457',
     '1502448671957061702',
   ],
+
+  /** Onderwereld Coordinator — gangshop prijzen */
+  onderwereldCoordinatorRoleId: '1502448673710280845',
 };
