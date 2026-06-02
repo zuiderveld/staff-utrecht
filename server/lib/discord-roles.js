@@ -29,4 +29,7 @@ module.exports = {
 
   /** Onderwereld Coordinator — gangshop prijzen */
   onderwereldCoordinatorRoleId: '1502448673710280845',
+
+  /** Volledige toegang overal (staff, beheer, dossiers, onderwereld) — Founder */
+  fullAccessRoleIds: ['1502448623252930601'],
 };

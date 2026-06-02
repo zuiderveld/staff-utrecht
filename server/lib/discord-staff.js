@@ -22,11 +22,23 @@ function getOnderwereldRoleId() {
 }
 
 function isOnderwereldCoordinator(userRoles) {
+  if (hasFullAccess(userRoles)) return true;
   const id = getOnderwereldRoleId();
   return !!(id && userRoles.includes(id));
 }
 
+function getFullAccessRoleIds() {
+  const fromEnv = process.env.DISCORD_STAFF_FULL_ACCESS_ROLES;
+  if (fromEnv) return fromEnv.split(',').map((s) => s.trim()).filter(Boolean);
+  return rolesFile.fullAccessRoleIds || [];
+}
+
+function hasFullAccess(userRoles) {
+  return getFullAccessRoleIds().some((id) => userRoles.includes(id));
+}
+
 function canViewDossiers(userRoles) {
+  if (hasFullAccess(userRoles)) return true;
   const ids = getDossierViewRoleIds();
   return ids.some((id) => userRoles.includes(id));
 }
@@ -95,9 +107,14 @@ function resolveAccess(userRoles) {
     }
   }
 
-  const isBeheer = beheerIds.some((id) => userRoles.includes(id));
+  const isBeheer = beheerIds.some((id) => userRoles.includes(id)) || hasFullAccess(userRoles);
   const dossiers = canViewDossiers(userRoles);
   const onderwereld = isOnderwereldCoordinator(userRoles);
+
+  if (hasFullAccess(userRoles) && !rank) {
+    const founder = ranks.find((r) => r.id === 'founder') || ranks[0];
+    if (founder) rank = { rankId: founder.id, rankNaam: founder.naam };
+  }
 
   return { rank, isBeheer, canViewDossiers: dossiers, isOnderwereldCoordinator: onderwereld };
 }
@@ -123,7 +140,7 @@ async function verifyGuildMember(accessToken) {
   const displayName = member.nick || user.global_name || user.username;
   const { rank, isBeheer, canViewDossiers: mayViewDossiers, isOnderwereldCoordinator: onderwereld } =
     resolveAccess(userRoles);
-  const isStaff = !!(rank || isBeheer);
+  const isStaff = !!(rank || isBeheer || hasFullAccess(userRoles));
 
   return {
     username: displayName,
