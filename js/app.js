@@ -210,10 +210,11 @@ async function saveSite(siteData) {
 
 function renderHeader(active) {
     const rank = staffRank();
-    const rankLabel = rank ? ' · ' + escapeHtml(rank) : '';
-    const beheer = isBeheer() || isSuperUser()
-        ? '<a href="/admin/" class="staff-btn staff-btn-primary"><i class="fas fa-cog"></i> Beheer</a>'
-        : '';
+    const rankLabel = rank ? escapeHtml(rank) : '';
+    const beheerItem =
+        isBeheer() || isSuperUser()
+            ? '<a href="/admin/" class="staff-user-menu-item"><i class="fas fa-cog"></i> Beheer</a>'
+            : '';
 
     return (
         '<header class="staff-header">' +
@@ -237,16 +238,68 @@ function renderHeader(active) {
             : '') +
         '</nav>' +
         '<div class="staff-actions">' +
-        '<span class="staff-badge"><i class="fas fa-user"></i> ' + escapeHtml(userName()) + rankLabel + '</span>' +
-        beheer +
-        '<button type="button" class="staff-btn staff-btn-danger" onclick="logout()">' +
-        '<i class="fas fa-sign-out-alt"></i> Uit</button></div></div></div></header>'
+        '<div class="staff-user-menu" id="staffUserMenu">' +
+        '<button type="button" class="staff-user-menu-toggle" id="staffUserMenuToggle" aria-expanded="false" aria-haspopup="true">' +
+        '<i class="fas fa-user"></i>' +
+        '<span class="staff-user-menu-label">' +
+        escapeHtml(userName()) +
+        (rankLabel ? ' · ' + rankLabel : '') +
+        '</span>' +
+        '<i class="fas fa-chevron-down staff-user-menu-chevron" aria-hidden="true"></i>' +
+        '</button>' +
+        '<div class="staff-user-menu-dropdown" id="staffUserMenuDropdown" hidden>' +
+        '<div class="staff-user-menu-header">' +
+        '<strong>' +
+        escapeHtml(userName()) +
+        '</strong>' +
+        (rankLabel ? '<span>' + rankLabel + '</span>' : '') +
+        '</div>' +
+        beheerItem +
+        '<button type="button" class="staff-user-menu-item staff-user-menu-danger" onclick="logout()">' +
+        '<i class="fas fa-sign-out-alt"></i> Uitloggen</button>' +
+        '</div></div></div></div></div></header>'
     );
+}
+
+function bindUserMenu() {
+    const menu = document.getElementById('staffUserMenu');
+    const toggle = document.getElementById('staffUserMenuToggle');
+    const dropdown = document.getElementById('staffUserMenuDropdown');
+    if (!menu || !toggle || !dropdown) return;
+
+    function closeMenu() {
+        menu.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        dropdown.hidden = true;
+    }
+
+    function openMenu() {
+        menu.classList.add('open');
+        toggle.setAttribute('aria-expanded', 'true');
+        dropdown.hidden = false;
+    }
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (menu.classList.contains('open')) closeMenu();
+        else openMenu();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!menu.contains(e.target)) closeMenu();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+    });
 }
 
 function mountHeader(active) {
     const el = document.getElementById('siteHeader');
-    if (el) el.innerHTML = renderHeader(active);
+    if (el) {
+        el.innerHTML = renderHeader(active);
+        bindUserMenu();
+    }
 }
 
 function renderRegelItem(item) {
