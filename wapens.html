@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URP Staff | Wapens</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/staff.css">
+    <script src="/js/maintenance-check.js"></script>
+    <style>
+        .wp-toolbar {
+            display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+            margin: 1rem 0 1.25rem;
+        }
+        .wp-search {
+            flex: 1; min-width: 220px; max-width: 420px;
+            background: rgba(255,255,255,0.05); border: 1px solid #2a2c35;
+            color: #eee; padding: 0.65rem 1rem; border-radius: 10px;
+        }
+        .wp-stats {
+            display: inline-flex; gap: 0.5rem; flex-wrap: wrap;
+            font-size: 0.85rem; color: #9ca3af;
+        }
+        .wp-stat {
+            padding: 0.35rem 0.75rem; border-radius: 999px;
+            background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25);
+        }
+        .wp-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+        .wp-tab {
+            background: rgba(255,255,255,0.05); border: 1px solid #2a2c35; color: #ccc;
+            padding: 0.55rem 1rem; border-radius: 999px; cursor: pointer; font-size: 0.85rem;
+        }
+        .wp-tab:hover, .wp-tab.active {
+            background: rgba(139,92,246,0.2); border-color: #8b5cf6; color: #e9d5ff;
+        }
+        .wp-panel { display: none; }
+        .wp-panel.active { display: block; }
+        .wp-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .wp-table th, .wp-table td {
+            padding: 0.55rem 0.75rem; text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .wp-table th { color: #a78bfa; font-size: 0.75rem; text-transform: uppercase; }
+        .wp-table tr:hover td { background: rgba(139,92,246,0.06); }
+        .wp-code {
+            font-family: ui-monospace, monospace; font-size: 0.78rem; color: #9ca3af;
+        }
+        .wp-tag {
+            display: inline-block; font-size: 0.65rem; padding: 0.15rem 0.45rem;
+            border-radius: 6px; margin-left: 0.35rem; background: rgba(52,211,153,0.12); color: #6ee7b7;
+        }
+        .wp-copy {
+            background: none; border: none; color: #8b5cf6; cursor: pointer; padding: 0;
+        }
+        .wp-copy:hover { color: #c4b5fd; }
+    </style>
+</head>
+<body>
+<div class="staff-bg"></div>
+<div id="siteHeader"></div>
+<main class="staff-container">
+    <div class="staff-hero">
+        <h2>Wapens <span>& Attachments</span></h2>
+        <p>ox_inventory spawn codes — wapens, ammo, suppressors, scopes, magazijnen & meer</p>
+        <div class="wp-stats" id="stats"></div>
+    </div>
+    <div class="wp-toolbar">
+        <input type="search" id="searchInput" class="wp-search" placeholder="Zoek op naam of spawn code…" autocomplete="off">
+    </div>
+    <div class="wp-tabs" id="mainTabs"></div>
+    <div id="content"></div>
+</main>
+<footer class="staff-footer">© Utrecht Roleplay · Wapens — vertrouwelijk</footer>
+<script src="/js/config.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/weapons-data.js"></script>
+<script>
+    if (!requireWeaponsAccess()) throw 0;
+    mountHeader('wapens');
+
+    var searchQuery = '';
+
+    function copyText(text, btn) {
+        if (!text || !navigator.clipboard) return;
+        navigator.clipboard.writeText(text).then(function () {
+            if (!btn) return;
+            var old = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(function () { btn.innerHTML = old; }, 900);
+        });
+    }
+
+    function matchesSearch(item) {
+        if (!searchQuery) return true;
+        var q = searchQuery.toLowerCase();
+        return (item.name && item.name.toLowerCase().indexOf(q) >= 0) ||
+            (item.label && item.label.toLowerCase().indexOf(q) >= 0) ||
+            (item.ammo && item.ammo.toLowerCase().indexOf(q) >= 0) ||
+            (item.type && item.type.toLowerCase().indexOf(q) >= 0);
+    }
+
+    function renderTable(items, extraCols) {
+        if (!items || !items.length) return '<p class="staff-empty">Geen items gevonden.</p>';
+        var filtered = items.filter(matchesSearch);
+        if (!filtered.length) return '<p class="staff-empty">Geen resultaten voor deze zoekopdracht.</p>';
+        var head = '<tr><th>Naam</th><th>Spawn code</th>';
+        if (extraCols) extraCols.forEach(function (c) { head += '<th>' + escapeHtml(c.label) + '</th>'; });
+        head += '<th></th></tr>';
+        var body = filtered.map(function (item) {
+            var cells = '<td>' + escapeHtml(item.label || item.name) +
+                (item.heavy ? '<span class="wp-tag">Heavy</span>' : '') + '</td>' +
+                '<td class="wp-code">' + escapeHtml(item.name) + '</td>';
+            if (extraCols) {
+                extraCols.forEach(function (c) {
+                    cells += '<td>' + escapeHtml(item[c.key] || '—') + '</td>';
+                });
+            }
+            cells += '<td><button type="button" class="wp-copy" title="Kopieer spawn code" data-copy="' +
+                escapeHtml(item.name) + '"><i class="fas fa-copy"></i></button></td>';
+            return '<tr>' + cells + '</tr>';
+        }).join('');
+        return '<table class="wp-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+    }
+
+    function groupComponents(category) {
+        return WEAPONS_DATA.components.filter(function (c) {
+            return c.category === category;
+        });
+    }
+
+    function otherComponents() {
+        var known = ['suppressor', 'scope', 'magazine', 'flashlight', 'grip', 'stock', 'barrel'];
+        return WEAPONS_DATA.components.filter(function (c) {
+            return known.indexOf(c.category) < 0;
+        });
+    }
+
+    var tabs = [
+        {
+            id: 'weapons',
+            label: 'Wapens (' + WEAPONS_DATA.weapons.length + ')',
+            render: function () {
+                return '<div class="staff-card">' + renderTable(WEAPONS_DATA.weapons, [
+                    { key: 'ammo', label: 'Ammo' }
+                ]) + '</div>';
+            }
+        },
+        {
+            id: 'ammo',
+            label: 'Ammo (' + WEAPONS_DATA.ammo.length + ')',
+            render: function () {
+                return '<div class="staff-card">' + renderTable(WEAPONS_DATA.ammo) + '</div>';
+            }
+        },
+        {
+            id: 'suppressors',
+            label: 'Suppressors (' + groupComponents('suppressor').length + ')',
+            render: function () {
+                return '<div class="staff-card">' + renderTable(groupComponents('suppressor'), [
+                    { key: 'type', label: 'Type' }
+                ]) + '</div>';
+            }
+        },
+        {
+            id: 'scopes',
+            label: 'Scopes (' + groupComponents('scope').length + ')',
+            render: function () {
+                return '<div class="staff-card">' + renderTable(groupComponents('scope'), [
+                    { key: 'type', label: 'Type' }
+                ]) + '</div>';
+            }
+        },
+        {
+            id: 'magazines',
+            label: 'Magazines (' + groupComponents('magazine').length + ')',
+            render: function () {
+                return '<div class="staff-card">' + renderTable(groupComponents('magazine'), [
+                    { key: 'type', label: 'Type' }
+                ]) + '</div>';
+            }
+        },
+        {
+            id: 'grips',
+            label: 'Grips & Flashlights (' + (groupComponents('grip').length + groupComponents('flashlight').length) + ')',
+            render: function () {
+                var items = groupComponents('grip').concat(groupComponents('flashlight'));
+                return '<div class="staff-card">' + renderTable(items, [
+                    { key: 'category', label: 'Categorie' }
+                ]) + '</div>';
+            }
+        },
+        {
+            id: 'other',
+            label: 'Overig (' + (groupComponents('stock').length + groupComponents('barrel').length + otherComponents().length) + ')',
+            render: function () {
+                var items = groupComponents('stock')
+                    .concat(groupComponents('barrel'))
+                    .concat(otherComponents());
+                return '<div class="staff-card">' + renderTable(items, [
+                    { key: 'category', label: 'Categorie' },
+                    { key: 'type', label: 'Type' }
+                ]) + '</div>';
+            }
+        }
+    ];
+
+    document.getElementById('stats').innerHTML =
+        '<span class="wp-stat"><i class="fas fa-gun"></i> ' + WEAPONS_DATA.weapons.length + ' wapens</span>' +
+        '<span class="wp-stat"><i class="fas fa-puzzle-piece"></i> ' + WEAPONS_DATA.components.length + ' attachments</span>' +
+        '<span class="wp-stat"><i class="fas fa-clock"></i> ' + escapeHtml(WEAPONS_DATA.lastUpdated) + '</span>';
+
+    var tabsEl = document.getElementById('mainTabs');
+    var contentEl = document.getElementById('content');
+    var activeTab = tabs[0].id;
+
+    function renderAll() {
+        contentEl.innerHTML = '';
+        tabs.forEach(function (tab, i) {
+            var panel = document.createElement('div');
+            panel.className = 'wp-panel' + (tab.id === activeTab ? ' active' : '');
+            panel.id = tab.id;
+            panel.innerHTML = tab.render();
+            contentEl.appendChild(panel);
+            panel.querySelectorAll('[data-copy]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    copyText(btn.getAttribute('data-copy'), btn);
+                });
+            });
+        });
+    }
+
+    tabs.forEach(function (tab, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wp-tab' + (i === 0 ? ' active' : '');
+        btn.textContent = tab.label;
+        btn.dataset.tab = tab.id;
+        btn.onclick = function () {
+            activeTab = tab.id;
+            document.querySelectorAll('.wp-tab').forEach(function (b) {
+                b.classList.toggle('active', b.dataset.tab === tab.id);
+            });
+            document.querySelectorAll('.wp-panel').forEach(function (p) {
+                p.classList.toggle('active', p.id === tab.id);
+            });
+        };
+        tabsEl.appendChild(btn);
+    });
+
+    document.getElementById('searchInput').addEventListener('input', function (e) {
+        searchQuery = e.target.value.trim();
+        renderAll();
+        document.querySelectorAll('.wp-tab').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.tab === activeTab);
+        });
+        document.querySelectorAll('.wp-panel').forEach(function (p) {
+            p.classList.toggle('active', p.id === activeTab);
+        });
+    });
+
+    renderAll();
+
+    fetch(SITE_API + '/api/staff-weapons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: accessToken() })
+    }).then(function (res) {
+        if (!res.ok) throw new Error('Geen server-toegang');
+    }).catch(function () {
+        alert('Sessie verlopen of geen server-toegang tot wapens.');
+        window.location.replace('/dashboard.html');
+    });
+</script>
+</body>
+</html>

@@ -4,7 +4,10 @@ const checkBeheer = require('../beheer-check');
 
 const DEFAULT_STATE = {
   global: false,
+  onderwereld: false,
   message: 'Het staff portaal is momenteel in onderhoud. Probeer het later opnieuw.',
+  onderwereldMessage:
+    'De onderwereld store (gangshop prijzen) is tijdelijk gesloten voor onderhoud. Probeer het later opnieuw.',
   updatedAt: null,
 };
 
@@ -76,7 +79,13 @@ function normalizeState(input) {
   const base = readDefaultFile();
   return {
     global: !!input.global,
+    onderwereld: !!input.onderwereld,
     message: (input.message || base.message || DEFAULT_STATE.message).trim(),
+    onderwereldMessage: (
+      input.onderwereldMessage ||
+      base.onderwereldMessage ||
+      DEFAULT_STATE.onderwereldMessage
+    ).trim(),
     updatedAt: new Date().toISOString(),
   };
 }

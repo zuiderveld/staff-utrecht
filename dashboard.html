@@ -22,6 +22,7 @@
         <a href="/functies.html" class="staff-dash-card"><i class="fas fa-layer-group"></i><h3>Staff functies</h3><p>Rollen & role-ID's</p></a>
         <a href="/team.html" class="staff-dash-card"><i class="fas fa-users"></i><h3>Staff team</h3><p>Per rank</p></a>
         <a href="/dossiers.html" id="dashDossiersCard" class="staff-dash-card" hidden><i class="fas fa-folder-open"></i><h3>Staff dossiers</h3><p>Warns & ontslagen</p></a>
+        <a href="/wapens.html" id="dashWapensCard" class="staff-dash-card" hidden><i class="fas fa-gun"></i><h3>Wapens</h3><p>Spawn codes, suppressors & attachments</p></a>
         <a href="/onderwereld.html" id="dashOnderwereldCard" class="staff-dash-card" hidden><i class="fas fa-user-secret"></i><h3>Onderwereld Coordinator</h3><p>Gangshop prijzen per level</p></a>
         <a href="/admin/" id="dashBeheerCard" class="staff-dash-card" hidden><i class="fas fa-cog"></i><h3>Beheer</h3><p>Inhoud bewerken</p></a>
     </div>
@@ -33,9 +34,10 @@
     if (!requireLogin()) throw 0;
     mountHeader('home');
     document.getElementById('welcomeName').textContent = userName();
-    if (isBeheer()) document.getElementById('dashBeheerCard').hidden = false;
-    if (canViewDossiers()) document.getElementById('dashDossiersCard').hidden = false;
-    if (isOnderwereldCoordinator()) document.getElementById('dashOnderwereldCard').hidden = false;
+    if (isBeheer() || isSuperUser()) document.getElementById('dashBeheerCard').hidden = false;
+    if (canViewDossiers() || isSuperUser()) document.getElementById('dashDossiersCard').hidden = false;
+    if (canViewWeapons() || isSuperUser()) document.getElementById('dashWapensCard').hidden = false;
+    if (isOnderwereldCoordinator() || isSuperUser()) document.getElementById('dashOnderwereldCard').hidden = false;
 </script>
 </body>
 </html>

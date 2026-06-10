@@ -46,12 +46,22 @@ function canViewDossiers() {
     return sessionStorage.getItem('urpStaffCanViewDossiers') === 'true';
 }
 
+function canViewWeapons() {
+    return sessionStorage.getItem('urpStaffCanViewWeapons') === 'true';
+}
+
+function isSuperUser() {
+    return sessionStorage.getItem('urpStaffSuperUser') === 'true';
+}
+
 function setSession(data) {
     sessionStorage.setItem('urpStaffUser', data.username || 'Gebruiker');
     sessionStorage.setItem('urpStaffAccessToken', data.accessToken || '');
     sessionStorage.setItem('urpStaffBeheer', data.isBeheer ? 'true' : 'false');
     sessionStorage.setItem('urpStaffIsStaff', data.isStaff ? 'true' : 'false');
     sessionStorage.setItem('urpStaffCanViewDossiers', data.canViewDossiers ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffCanViewWeapons', data.canViewWeapons ? 'true' : 'false');
+    sessionStorage.setItem('urpStaffSuperUser', data.isSuperUser ? 'true' : 'false');
     sessionStorage.setItem('urpStaffOnderwereld', data.isOnderwereldCoordinator ? 'true' : 'false');
     if (data.loginType) sessionStorage.setItem('urpStaffLoginType', data.loginType);
     else sessionStorage.removeItem('urpStaffLoginType');
@@ -75,6 +85,8 @@ function logout() {
     sessionStorage.removeItem('urpStaffAvatarUrl');
     sessionStorage.removeItem('urpStaffDiscordTag');
     sessionStorage.removeItem('urpStaffCanViewDossiers');
+    sessionStorage.removeItem('urpStaffCanViewWeapons');
+    sessionStorage.removeItem('urpStaffSuperUser');
     sessionStorage.removeItem('urpStaffOnderwereld');
     sessionStorage.removeItem('urpStaffLoginType');
     sessionStorage.removeItem('urpStaffRedirect');
@@ -84,12 +96,18 @@ function logout() {
 
 function requireDossiersAccess() {
     if (!requireLogin()) return false;
-    if (!canViewDossiers()) {
-        alert('Geen toegang tot staff dossiers. Alleen Lead Coördinator, Beheer Team en Founder.');
-        window.location.replace('/dashboard.html');
-        return false;
-    }
-    return true;
+    if (isSuperUser() || canViewDossiers()) return true;
+    alert('Geen toegang tot staff dossiers. Alleen Lead Coördinator, Beheer Team en Founder.');
+    window.location.replace('/dashboard.html');
+    return false;
+}
+
+function requireWeaponsAccess() {
+    if (!requireLogin()) return false;
+    if (isSuperUser() || canViewWeapons()) return true;
+    alert('Geen toegang tot wapens. Alleen Beheer Team heeft toegang tot dit onderdeel.');
+    window.location.replace('/dashboard.html');
+    return false;
 }
 
 function requireOnderwereldAccess() {
@@ -99,7 +117,7 @@ function requireOnderwereldAccess() {
         window.location.replace('/');
         return false;
     }
-    if (!isOnderwereldCoordinator()) {
+    if (!isOnderwereldCoordinator() && !isSuperUser()) {
         alert('Geen toegang. Alleen Onderwereld Coordinator heeft toegang tot deze pagina.');
         window.location.replace(isStaff() ? '/dashboard.html' : '/');
         return false;
@@ -123,6 +141,7 @@ function requireLogin() {
 }
 
 function requireBeheer() {
+    if (isSuperUser()) return true;
     if (!isBeheer()) {
         alert('Geen toegang tot beheer. Alleen Founder of Co-Founder.');
         window.location.replace('/dashboard.html');
@@ -192,7 +211,7 @@ async function saveSite(siteData) {
 function renderHeader(active) {
     const rank = staffRank();
     const rankLabel = rank ? ' · ' + escapeHtml(rank) : '';
-    const beheer = isBeheer()
+    const beheer = isBeheer() || isSuperUser()
         ? '<a href="/admin/" class="staff-btn staff-btn-primary"><i class="fas fa-cog"></i> Beheer</a>'
         : '';
 
@@ -207,10 +226,13 @@ function renderHeader(active) {
         '<a href="/regels.html"' + (active === 'regels' ? ' class="active"' : '') + '>Regels</a>' +
         '<a href="/functies.html"' + (active === 'functies' ? ' class="active"' : '') + '>Staff functies</a>' +
         '<a href="/team.html"' + (active === 'team' ? ' class="active"' : '') + '>Staff team</a>' +
-        (canViewDossiers()
+        (canViewDossiers() || isSuperUser()
             ? '<a href="/dossiers.html"' + (active === 'dossiers' ? ' class="active"' : '') + '>Dossiers</a>'
             : '') +
-        (isOnderwereldCoordinator()
+        (canViewWeapons() || isSuperUser()
+            ? '<a href="/wapens.html"' + (active === 'wapens' ? ' class="active"' : '') + '>Wapens</a>'
+            : '') +
+        (isOnderwereldCoordinator() || isSuperUser()
             ? '<a href="/onderwereld.html"' + (active === 'onderwereld' ? ' class="active"' : '') + '>Onderwereld</a>'
             : '') +
         '</nav>' +
@@ -227,25 +249,117 @@ function mountHeader(active) {
     if (el) el.innerHTML = renderHeader(active);
 }
 
-function renderRegels(regels, container) {
+function renderRegelItem(item) {
+    if (typeof item === 'string') {
+        return '<li><i class="fas fa-check-circle"></i> ' + escapeHtml(item) + '</li>';
+    }
+    var html =
+        '<li class="staff-rule-item">' +
+        '<div class="staff-rule-head">' +
+        '<span class="staff-rule-num">' + escapeHtml(String(item.nummer || '')) + '</span>' +
+        '<strong>' + escapeHtml(item.titel || '') + '</strong>' +
+        '</div>';
+    if (item.tekst) {
+        html += '<p class="staff-rule-text">' + escapeHtml(item.tekst) + '</p>';
+    }
+    if (item.voorbeeld) {
+        html += '<pre class="staff-rule-example">' + escapeHtml(item.voorbeeld) + '</pre>';
+    }
+    if (item.info) {
+        html += '<p class="staff-rule-info"><i class="fas fa-info-circle"></i> ' + escapeHtml(item.info) + '</p>';
+    }
+    html += '</li>';
+    return html;
+}
+
+function renderSanctieladder(ladder) {
+    if (!ladder) return '';
+
+    var sanctiesHtml = (ladder.sancties || [])
+        .map(function (s) {
+            return (
+                '<div class="staff-sanctie-badge staff-sanctie-badge--' +
+                escapeHtml(s.code.toLowerCase()) +
+                '"><span class="staff-sanctie-code">' +
+                escapeHtml(s.code) +
+                '</span> ' +
+                escapeHtml(s.naam) +
+                '</div>'
+            );
+        })
+        .join('');
+
+    function listBlock(title, items, icon) {
+        if (!items || !items.length) return '';
+        return (
+            '<div class="staff-sanctie-block">' +
+            '<h4><i class="fas fa-' +
+            icon +
+            '"></i> ' +
+            escapeHtml(title) +
+            '</h4>' +
+            '<ul class="staff-list">' +
+            items
+                .map(function (item) {
+                    return '<li><i class="fas fa-angle-right"></i> ' + escapeHtml(item) + '</li>';
+                })
+                .join('') +
+            '</ul></div>'
+        );
+    }
+
+    return (
+        '<div class="staff-rank-block staff-sanctieladder">' +
+        '<div class="staff-rank-head"><h3>' +
+        escapeHtml(ladder.titel || 'Sanctieladder') +
+        '</h3></div>' +
+        '<div class="staff-sanctie-badges">' +
+        sanctiesHtml +
+        '</div>' +
+        listBlock('Belangrijke informatie', ladder.belangrijk, 'circle-info') +
+        listBlock('W1 — Waarschuwing', ladder.w1, 'exclamation') +
+        listBlock('W2 — Demote', ladder.w2, 'arrow-down') +
+        listBlock('W3 — Ontslag', ladder.w3, 'ban') +
+        listBlock('Staff Blacklist', ladder.blacklist, 'skull-crossbones') +
+        (ladder.footer
+            ? '<p class="staff-rule-footer"><i class="fas fa-check"></i> ' +
+              escapeHtml(ladder.footer) +
+              ' <a class="staff-rule-link" href="https://staff.utrechtroleplay.eu/" target="_blank" rel="noopener">Staffwebsite</a></p>'
+            : '') +
+        '</div>'
+    );
+}
+
+function renderRegels(site, container) {
+    var regels = site && site.regels ? site.regels : site;
     if (!regels || !regels.length) {
         container.innerHTML = '<p class="staff-empty">Nog geen regels ingesteld.</p>';
         return;
     }
-    container.innerHTML = regels
+    var html = regels
         .map(function (cat) {
-            const items = (cat.items || [])
-                .map(function (item) {
-                    return '<li><i class="fas fa-check-circle"></i> ' + escapeHtml(item) + '</li>';
-                })
-                .join('');
+            var items = (cat.items || []).map(renderRegelItem).join('');
             return (
                 '<div class="staff-rank-block">' +
-                '<div class="staff-rank-head"><h3>' + escapeHtml(cat.titel || 'Regels') + '</h3></div>' +
-                '<ul class="staff-list">' + items + '</ul></div>'
+                '<div class="staff-rank-head"><h3>' +
+                escapeHtml(cat.titel || 'Regels') +
+                '</h3></div>' +
+                '<ul class="staff-list staff-rule-list">' +
+                items +
+                '</ul></div>'
             );
         })
         .join('');
+
+    html +=
+        '<p class="staff-rule-footer"><i class="fas fa-check"></i> Aub vinkje zetten als je dit hebt gelezen. ' +
+        '<a class="staff-rule-link" href="https://staff.utrechtroleplay.eu/" target="_blank" rel="noopener">Staffwebsite</a></p>';
+
+    if (site && site.sanctieladder) {
+        html += renderSanctieladder(site.sanctieladder);
+    }
+
+    container.innerHTML = html;
 }
 
 async function fetchDossiers() {
@@ -393,6 +507,50 @@ function bindFunctieAccordions(container) {
     });
 }
 
+function functiePermList(items, label) {
+    if (!items || !items.length) return '';
+    var list = items
+        .map(function (item) {
+            return '<li><i class="fas fa-angle-right"></i> ' + escapeHtml(item) + '</li>';
+        })
+        .join('');
+    return (
+        (label ? '<p class="staff-functie-vanaf-label">' + escapeHtml(label) + '</p>' : '') +
+        '<ul class="staff-list staff-functie-perms">' +
+        list +
+        '</ul>'
+    );
+}
+
+function functieSectieLabel(sectie) {
+    if (sectie.naam && sectie.nummer) {
+        return sectie.nummer + '. ' + sectie.naam;
+    }
+    return sectie.naam || sectie.beschrijving || 'Sectie';
+}
+
+function renderFunctieExtraPanel(item, roleMap) {
+    var html = roleIdList(item.rollen, roleMap);
+    if (item.functie && item.functie.length) {
+        html += functiePermList(item.functie, 'Functie:');
+    }
+    if (item.permissies && item.permissies.length) {
+        html += functiePermList(item.permissies, 'Permissies:');
+    }
+    if (item.uitleg) {
+        html += '<p class="staff-functie-uitleg">' + escapeHtml(item.uitleg) + '</p>';
+    }
+    if (item.vanaf && item.vanaf.length) {
+        html +=
+            '<p class="staff-functie-vanaf-label">Vereiste rang:</p>' +
+            roleIdList(item.vanaf, roleMap);
+    }
+    if (item.vereiste) {
+        html += '<p class="staff-functie-uitleg"><strong>Vereiste:</strong> ' + escapeHtml(item.vereiste) + '</p>';
+    }
+    return html;
+}
+
 function renderFuncties(data, container, roleMap) {
     roleMap = roleMap || {};
     if (!data || !data.secties) {
@@ -409,10 +567,13 @@ function renderFuncties(data, container, roleMap) {
     data.secties.forEach(function (sectie, i) {
         const panelId = 'functie-sectie-' + i;
         const startOpen = i === 0;
-        const panelInner = roleIdList(sectie.rollen, roleMap);
+        let panelInner = roleIdList(sectie.rollen, roleMap);
+        if (sectie.permissies && sectie.permissies.length) {
+            panelInner += functiePermList(sectie.permissies, 'Permissies:');
+        }
         html +=
             '<div class="staff-functie-sectie">' +
-            functieToggleHtml(sectie.beschrijving || 'Sectie', panelId, startOpen) +
+            functieToggleHtml(functieSectieLabel(sectie), panelId, startOpen) +
             functiePanelHtml(panelId, panelInner, startOpen) +
             '</div>';
     });
@@ -426,23 +587,20 @@ function renderFuncties(data, container, roleMap) {
             '</div>';
         data.extra.items.forEach(function (item, i) {
             const panelId = 'functie-extra-' + i;
-            const firstRole = item.rollen && item.rollen[0] ? roleMeta(item.rollen[0], roleMap).name : '';
-            const toggleLabel = firstRole
-                ? firstRole + (item.uitleg ? ' — ' + item.uitleg.slice(0, 60) + (item.uitleg.length > 60 ? '…' : '') : '')
-                : item.uitleg || 'Extra rol';
-            let panelInner = roleIdList(item.rollen, roleMap);
-            panelInner += '<p class="staff-functie-uitleg">' + escapeHtml(item.uitleg || '') + '</p>';
-            if (item.vanaf && item.vanaf.length) {
-                panelInner +=
-                    '<p class="staff-functie-vanaf-label">Mogelijk vanaf:</p>' +
-                    roleIdList(item.vanaf, roleMap);
-            }
+            const toggleLabel = item.naam || item.uitleg || 'Extra rol';
+            const panelInner = renderFunctieExtraPanel(item, roleMap);
             html +=
                 '<div class="staff-functie-extra">' +
                 functieToggleHtml(toggleLabel, panelId, false) +
                 functiePanelHtml(panelId, panelInner, false) +
                 '</div>';
         });
+        if (data.extra.footer) {
+            html +=
+                '<p class="staff-rule-footer">' +
+                '<a class="staff-rule-link" href="https://staff.utrechtroleplay.eu/" target="_blank" rel="noopener">Staffsite</a>' +
+                '</p>';
+        }
         html += '</div>';
     }
 

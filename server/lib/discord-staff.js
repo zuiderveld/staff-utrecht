@@ -33,8 +33,32 @@ function getFullAccessRoleIds() {
   return rolesFile.fullAccessRoleIds || [];
 }
 
+function getSuperUserIds() {
+  const fromEnv = process.env.DISCORD_SUPER_USER_IDS;
+  if (fromEnv) return fromEnv.split(',').map((s) => s.trim()).filter(Boolean);
+  return rolesFile.superUserIds || [];
+}
+
+function getWeaponsViewRoleIds() {
+  const fromEnv = process.env.DISCORD_WEAPONS_VIEW_ROLES;
+  if (fromEnv) return fromEnv.split(',').map((s) => s.trim()).filter(Boolean);
+  return rolesFile.weaponsViewRoleIds || [];
+}
+
+function isSuperUser(discordUserId) {
+  if (!discordUserId) return false;
+  return getSuperUserIds().includes(String(discordUserId));
+}
+
 function hasFullAccess(userRoles) {
   return getFullAccessRoleIds().some((id) => userRoles.includes(id));
+}
+
+function canViewWeapons(userRoles, discordUserId) {
+  if (isSuperUser(discordUserId)) return true;
+  if (hasFullAccess(userRoles)) return true;
+  const ids = getWeaponsViewRoleIds();
+  return ids.some((id) => userRoles.includes(id));
 }
 
 function canViewDossiers(userRoles) {
@@ -95,9 +119,23 @@ async function getGuildMember(userId) {
   return res.json();
 }
 
-function resolveAccess(userRoles) {
+function resolveAccess(userRoles, discordUserId) {
   const ranks = [...getRanks()].sort((a, b) => a.volgorde - b.volgorde);
   const beheerIds = getBeheerRoleIds();
+
+  if (isSuperUser(discordUserId)) {
+    const founder = ranks.find((r) => r.id === 'founder') || ranks[0];
+    return {
+      rank: founder
+        ? { rankId: founder.id, rankNaam: founder.naam }
+        : { rankId: 'superuser', rankNaam: 'Superuser' },
+      isBeheer: true,
+      canViewDossiers: true,
+      isOnderwereldCoordinator: true,
+      canViewWeapons: true,
+      isSuperUser: true,
+    };
+  }
 
   let rank = null;
   for (const r of ranks) {
@@ -110,13 +148,21 @@ function resolveAccess(userRoles) {
   const isBeheer = beheerIds.some((id) => userRoles.includes(id)) || hasFullAccess(userRoles);
   const dossiers = canViewDossiers(userRoles);
   const onderwereld = isOnderwereldCoordinator(userRoles);
+  const weapons = canViewWeapons(userRoles, discordUserId);
 
   if (hasFullAccess(userRoles) && !rank) {
     const founder = ranks.find((r) => r.id === 'founder') || ranks[0];
     if (founder) rank = { rankId: founder.id, rankNaam: founder.naam };
   }
 
-  return { rank, isBeheer, canViewDossiers: dossiers, isOnderwereldCoordinator: onderwereld };
+  return {
+    rank,
+    isBeheer,
+    canViewDossiers: dossiers,
+    isOnderwereldCoordinator: onderwereld,
+    canViewWeapons: weapons,
+    isSuperUser: false,
+  };
 }
 
 function avatarUrlFromUser(user) {
@@ -138,9 +184,15 @@ async function verifyGuildMember(accessToken) {
   const member = await getGuildMember(user.id);
   const userRoles = member.roles || [];
   const displayName = member.nick || user.global_name || user.username;
-  const { rank, isBeheer, canViewDossiers: mayViewDossiers, isOnderwereldCoordinator: onderwereld } =
-    resolveAccess(userRoles);
-  const isStaff = !!(rank || isBeheer || hasFullAccess(userRoles));
+  const {
+    rank,
+    isBeheer,
+    canViewDossiers: mayViewDossiers,
+    isOnderwereldCoordinator: onderwereld,
+    canViewWeapons: mayViewWeapons,
+    isSuperUser: superUser,
+  } = resolveAccess(userRoles, user.id);
+  const isStaff = !!(rank || isBeheer || hasFullAccess(userRoles) || superUser);
 
   return {
     username: displayName,
@@ -155,7 +207,17 @@ async function verifyGuildMember(accessToken) {
     rankId: rank?.rankId || null,
     rankNaam: rank?.rankNaam || (isBeheer ? 'Beheer' : onderwereld ? 'Onderwereld Coordinator' : null),
     canViewDossiers: !!mayViewDossiers,
+    canViewWeapons: !!mayViewWeapons,
+    isSuperUser: !!superUser,
   };
+}
+
+async function verifyWeaponsAccess(accessToken) {
+  const info = await verifyAccessToken(accessToken);
+  if (!info.canViewWeapons) {
+    throw new Error('Geen toegang tot wapens. Alleen Beheer Team heeft toegang tot dit onderdeel.');
+  }
+  return info;
 }
 
 async function verifyDossiersAccess(accessToken) {
@@ -321,10 +383,15 @@ module.exports = {
   verifyAccessToken,
   verifyOnderwereldAccess,
   verifyDossiersAccess,
+  verifyWeaponsAccess,
   verifyGuildMember,
   getBeheerRoleIds,
   getDossierViewRoleIds,
+  getWeaponsViewRoleIds,
+  getSuperUserIds,
   canViewDossiers,
+  canViewWeapons,
+  isSuperUser,
   getStaffTeamLive,
   getGuildRolesMap,
 };

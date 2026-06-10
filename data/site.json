@@ -3,44 +3,306 @@
     {
       "titel": "Algemene richtlijnen en regels",
       "items": [
-        "De Discord-link van Utrecht moet in je bio/status vermeld staan. Tag is optioneel. Als je dit niet doet word je niet meegenomen in promoties en ontvang je staffwarn(s).",
-        "Spelen op andere servers is niet toegestaan, met uitzondering van testservers.",
-        "Het hebben van andere roleplayservers in je bio, staff zijn op andere servers of het bezitten van een eigen server wordt gezien als dubbelclannen en leidt tot ontslag.",
-        "Het gebruik of bezit van cheats, zowel op Utrecht Roleplay als op andere servers, resulteert in direct ontslag en een blacklist.",
-        "Het lekken, delen of verspreiden van persoonlijke informatie van burgers of staffleden leidt per direct tot ontslag en een staffblacklist.",
-        "Het onterecht disconnecten, deafenen of dempen van burgers of staffleden leidt tot staffsancties.",
-        "Indien je je bezig houdt met zaken die de server kunnen schaden en het imago ervan, kunnen wij ervoor kiezen om jou van je rollen te ontnemen.",
-        "Op het moment dat je ontslag neemt en er toch voor kiest om terug te komen, kun je worden aangenomen, maar wel minimaal 2 rangen lager dan wat je voorheen was."
+        {
+          "nummer": 1,
+          "titel": "Discord-link in bio / status",
+          "tekst": "De Discord-link van Utrecht Roleplay moet zichtbaar in je bio of status staan. Een stafftag is optioneel.",
+          "info": "Staffleden die dit niet hebben ingesteld kunnen worden uitgesloten van promoties en kunnen een staffwarn ontvangen.",
+          "voorbeeld": "Utrecht Roleplay\n🔗 discord.gg/6P85GfatBq\n🚀 (zet hier jou rang)"
+        },
+        {
+          "nummer": 2,
+          "titel": "Andere servers",
+          "tekst": "Het spelen op andere roleplayservers is niet toegestaan.",
+          "info": "Dit voorkomt belangenverstrengeling en zorgt voor loyaliteit aan Utrecht Roleplay."
+        },
+        {
+          "nummer": 3,
+          "titel": "Dubbelclannen",
+          "tekst": "Het hebben van andere roleplayservers in je bio, staff zijn op andere servers of het bezitten van een eigen roleplayserver wordt gezien als dubbelclannen.",
+          "info": "Dit leidt tot direct ontslag uit het staffteam."
+        },
+        {
+          "nummer": 4,
+          "titel": "Cheats en externe software",
+          "tekst": "Het gebruiken, promoten of bezitten van cheats, exploitsoftware of ongeoorloofde hulpmiddelen is verboden.",
+          "info": "Dit geldt zowel binnen als buiten Utrecht Roleplay en resulteert in direct ontslag en een staffblacklist."
+        },
+        {
+          "nummer": 5,
+          "titel": "Privacy en persoonsgegevens",
+          "tekst": "Het lekken, delen of verspreiden van persoonlijke informatie van burgers of staffleden is verboden.",
+          "info": "Overtreding leidt direct tot ontslag en een staffblacklist."
+        },
+        {
+          "nummer": 6,
+          "titel": "Misbruik van communicatiebevoegdheden",
+          "tekst": "Het onterecht disconnecten, deafenen of dempen van burgers of staffleden is niet toegestaan.",
+          "info": "Misbruik van bevoegdheden wordt gezien als staffabuse."
+        },
+        {
+          "nummer": 7,
+          "titel": "Schade aan de community",
+          "tekst": "Wanneer een stafflid zich bezighoudt met zaken die de server of haar reputatie kunnen schaden, kan het beheerteam besluiten rollen af te nemen.",
+          "info": "Dit geldt zowel binnen als buiten de server."
+        },
+        {
+          "nummer": 8,
+          "titel": "Terugkeren na ontslag",
+          "tekst": "Wanneer een stafflid vrijwillig ontslag neemt en later terugkeert, kan deze opnieuw worden aangenomen.",
+          "info": "De terugkeer vindt minimaal twee rangen lager plaats dan de vorige functie."
+        }
       ]
     },
     {
       "titel": "Sancties & bevoegdheden",
       "items": [
-        "Het weghalen van taken of bans die je zelf niet hebt uitgedeeld, zal leiden tot een warn of ontslag. Dit moet altijd besproken worden met het stafflid die de sanctie heeft opgelegd.",
-        "Eigen staffzaken mogen alleen behandeld worden vanaf de rol Adviseur, indien dit op een correcte en eerlijke manier wordt gedaan.",
-        "Je mag geen staffzaken behandelen die betrekking hebben op je eigen gang of vrienden of waar jijzelf bij betrokken bent (met uitzondering als je mede-bestuur+ bent).",
-        "Het gebruiken van staffperms op welke manier dan ook waarmee je een persoonlijk voordeel binnen roleplay krijgt, wordt gezien als staffabuse.",
-        "Het reviven van personen zonder bewijs te hebben gezien valt onder staffabuse.",
-        "Het overtreden van de APV kan in ernstige gevallen leiden tot staffsancties.",
-        "Staffwarns en ontslagen kunnen uitsluitend worden uitgevoerd door Staff Coördinatoren en Lead Coördinatoren.",
-        "Tijdens staffdienst is het ten strengste verboden om deel te nemen aan roleplay-scenario's of rond te rijden in de stad.",
-        "Tijdens een staffzaak dien jij netjes in gesprek te gaan met de persoon en om clips te vragen of ander bewijsmateriaal indien dit nodig is."
+        {
+          "nummer": 9,
+          "titel": "Sancties aanpassen",
+          "tekst": "Het verwijderen of aanpassen van taken, warns of bans die je niet zelf hebt uitgedeeld is niet toegestaan.",
+          "info": "Dit moet altijd besproken worden met het stafflid dat de sanctie heeft opgelegd."
+        },
+        {
+          "nummer": 10,
+          "titel": "Eigen staffzaken",
+          "tekst": "Eigen staffzaken mogen alleen behandeld worden vanaf de rang Adviseur.",
+          "info": "Dit moet altijd objectief, correct en eerlijk gebeuren."
+        },
+        {
+          "nummer": 11,
+          "titel": "Belangenverstrengeling",
+          "tekst": "Je mag geen staffzaken behandelen waarbij vrienden, gangleden of jijzelf betrokken zijn.",
+          "info": "Alleen Mede-Beheer+ mag hier in uitzonderlijke gevallen van afwijken."
+        },
+        {
+          "nummer": 12,
+          "titel": "Staffabuse",
+          "tekst": "Het gebruiken van staffpermissies voor persoonlijk voordeel binnen roleplay is verboden.",
+          "info": "Hieronder vallen onder andere geld verdienen, items verkrijgen of RP-voordelen creëren."
+        },
+        {
+          "nummer": 13,
+          "titel": "Revives",
+          "tekst": "Het reviven van personen zonder voldoende bewijs te hebben gezien is niet toegestaan.",
+          "info": "Dit wordt beschouwd als staffabuse."
+        },
+        {
+          "nummer": 14,
+          "titel": "APV-overtredingen",
+          "tekst": "Staffleden dienen zich altijd aan de APV te houden.",
+          "info": "Ernstige overtredingen kunnen leiden tot staffsancties naast normale sancties. Zie APV-kanaal op Discord (1508515879707742320)."
+        },
+        {
+          "nummer": 15,
+          "titel": "Uitdelen van staffsancties",
+          "tekst": "Staffwarns en ontslagen mogen uitsluitend worden uitgevoerd door Staff Coördinatoren en Lead Coördinatoren.",
+          "info": "Andere staffleden hebben hiervoor geen bevoegdheid."
+        },
+        {
+          "nummer": 16,
+          "titel": "Gedrag tijdens staffdienst",
+          "tekst": "Tijdens staffdienst is het verboden om actief deel te nemen aan roleplayscenario's of rond te rijden in de stad.",
+          "info": "Je focus moet volledig liggen op het helpen van spelers en het afhandelen van tickets."
+        },
+        {
+          "nummer": 17,
+          "titel": "Behandeling van staffzaken",
+          "tekst": "Tijdens een staffzaak dien je altijd respectvol en professioneel te communiceren.",
+          "info": "Vraag waar nodig om clips, screenshots of ander bewijsmateriaal."
+        }
       ]
     },
     {
-      "titel": "Extra",
+      "titel": "Professionaliteit",
       "items": [
-        "Crosshairs zijn vanaf nu in Utrecht Roleplay wél toegestaan.",
-        "Het vragen om promoties zal leiden tot een staffwarn.",
-        "Iedereen moet URP voor zijn naam hebben in-game, met uitzondering van het Beheer Team.",
-        "Het inspawnen van voertuigen via /tx is niet toegestaan.",
-        "Het gebruiken van tx-perms buiten staffdienst is ook niet toegestaan.",
-        "Het geven van promoties wordt enkel gedaan door Beheer of door iemand van Beheer Team met toestemming.",
-        "Er zijn GEEN anticheat testers. Als iemand dit zegt: alsnog bannen.",
-        "Schelden met ziektes zal per direct leiden tot ontslag uit het staffteam."
+        {
+          "nummer": 18,
+          "titel": "Professioneel gedrag",
+          "tekst": "Staffleden dienen zich respectvol en professioneel te gedragen op Discord, in-game en op sociale media.",
+          "info": "Toxic gedrag, provoceren of het zwartmaken van de server is niet toegestaan."
+        },
+        {
+          "nummer": 19,
+          "titel": "Misbruik van staffinformatie",
+          "tekst": "Informatie verkregen via staffwerkzaamheden mag niet worden gebruikt voor persoonlijk voordeel.",
+          "info": "Hieronder valt ook het doorspelen van informatie aan vrienden of gangleden."
+        },
+        {
+          "nummer": 20,
+          "titel": "Favoritisme",
+          "tekst": "Het bevoordelen van vrienden, kennissen of gangleden is niet toegestaan.",
+          "info": "Iedere speler moet gelijk behandeld worden ongeacht persoonlijke banden."
+        },
+        {
+          "nummer": 21,
+          "titel": "Objectiviteit",
+          "tekst": "Staffzaken moeten altijd neutraal en objectief worden behandeld.",
+          "info": "Persoonlijke meningen mogen geen invloed hebben op een beslissing."
+        }
+      ]
+    },
+    {
+      "titel": "Activiteit",
+      "items": [
+        {
+          "nummer": 22,
+          "titel": "Activiteitseis",
+          "tekst": "Staffleden worden geacht actief aanwezig te zijn binnen het staffteam.",
+          "info": "Langdurige inactiviteit zonder melding kan leiden tot degradatie of ontslag."
+        },
+        {
+          "nummer": 23,
+          "titel": "Afwezigheid melden",
+          "tekst": "Bij afwezigheid van meerdere dagen dient dit gemeld te worden bij een leidinggevende.",
+          "info": "Hierdoor blijft de bezetting van het staffteam overzichtelijk."
+        },
+        {
+          "nummer": 24,
+          "titel": "AFK tijdens staffdienst",
+          "tekst": "Langdurig AFK staan tijdens staffdienst zonder geldige reden is niet toegestaan.",
+          "info": "Staffdienst is bedoeld om spelers actief te ondersteunen."
+        }
+      ]
+    },
+    {
+      "titel": "Bewijsmateriaal",
+      "items": [
+        {
+          "nummer": 25,
+          "titel": "Bewijs bewaren",
+          "tekst": "Bij zware sancties zoals langdurige bans, blacklists of ontslagen dient voldoende bewijs bewaard te worden.",
+          "info": "Dit bewijs moet beschikbaar zijn voor eventuele beroepsprocedures."
+        },
+        {
+          "nummer": 26,
+          "titel": "Onderzoeksplicht",
+          "tekst": "Voordat een zware sanctie wordt uitgedeeld dient voldoende onderzoek plaats te vinden.",
+          "info": "Sancties mogen nooit gebaseerd zijn op aannames."
+        }
+      ]
+    },
+    {
+      "titel": "Corruptie & misbruik",
+      "items": [
+        {
+          "nummer": 27,
+          "titel": "Omkoping",
+          "tekst": "Het aannemen van geld, voertuigen, goederen of andere voordelen in ruil voor staffhulp is verboden.",
+          "info": "Dit wordt gezien als corruptie en leidt doorgaans tot ontslag."
+        },
+        {
+          "nummer": 28,
+          "titel": "Misbruik van bevoegdheden",
+          "tekst": "Staffbevoegdheden mogen uitsluitend worden gebruikt voor staffdoeleinden.",
+          "info": "Elk ander gebruik wordt beschouwd als staffmisbruik."
+        }
+      ]
+    },
+    {
+      "titel": "Extra regels",
+      "items": [
+        {
+          "nummer": 29,
+          "titel": "Crosshairs",
+          "tekst": "Crosshairs zijn toegestaan binnen Utrecht Roleplay.",
+          "info": "Mits deze geen verboden functies bevatten."
+        },
+        {
+          "nummer": 30,
+          "titel": "Vragen om promoties",
+          "tekst": "Het vragen om promoties is niet toegestaan.",
+          "info": "Dit zal leiden tot een staffwarn."
+        },
+        {
+          "nummer": 31,
+          "titel": "URP-tag",
+          "tekst": "Iedereen dient \"URP\" voor zijn of haar naam te hebben in-game.",
+          "info": "Uitzondering geldt voor het Beheer Team."
+        },
+        {
+          "nummer": 32,
+          "titel": "TX-voertuigen",
+          "tekst": "Het inspawnen van voertuigen via /tx is niet toegestaan.",
+          "info": "Alleen toegestane systemen mogen hiervoor worden gebruikt."
+        },
+        {
+          "nummer": 33,
+          "titel": "TX-permissies",
+          "tekst": "Het gebruiken van TX-permissies buiten staffdienst is verboden.",
+          "info": "Dit wordt gezien als misbruik van bevoegdheden."
+        },
+        {
+          "nummer": 34,
+          "titel": "Promoties uitdelen",
+          "tekst": "Promoties mogen uitsluitend worden gegeven door Beheer of met toestemming van Beheer.",
+          "info": "Andere promoties zijn ongeldig."
+        },
+        {
+          "nummer": 35,
+          "titel": "Anticheat-testers",
+          "tekst": "Er bestaan geen officiële anticheat-testers binnen Utrecht Roleplay.",
+          "info": "Personen die zich voordoen als anticheat-tester dienen alsnog bestraft te worden volgens de regels."
+        },
+        {
+          "nummer": 36,
+          "titel": "Schelden met ziektes",
+          "tekst": "Schelden met ziektes is niet toegestaan.",
+          "info": "Dit leidt per direct tot ontslag uit het staffteam."
+        }
       ]
     }
   ],
+  "sanctieladder": {
+    "titel": "Toevoeging — Sanctieladder",
+    "footer": "Aub vinkje zetten als je dit hebt gelezen.",
+    "sancties": [
+      { "code": "W1", "naam": "Waarschuwing" },
+      { "code": "W2", "naam": "Demote (rangverlaging)" },
+      { "code": "W3", "naam": "Ontslag uit het staffteam" }
+    ],
+    "belangrijk": [
+      "Sancties kunnen worden overgeslagen afhankelijk van de ernst van de overtreding.",
+      "Ernstige overtredingen kunnen direct leiden tot W3 (Ontslag) zonder voorafgaande waarschuwingen.",
+      "Staffwarns, demotes en ontslagen mogen uitsluitend worden uitgedeeld door Staff Coördinatoren en Lead Coördinatoren."
+    ],
+    "w1": [
+      "Discord-link niet in bio/status hebben.",
+      "Vragen om promoties.",
+      "Langdurig AFK tijdens staffdienst.",
+      "Niet melden van afwezigheid.",
+      "Onprofessioneel gedrag van lichte aard.",
+      "Eerste lichte overtreding van staffregels."
+    ],
+    "w2": [
+      "Herhaaldelijke W1-overtredingen.",
+      "Onvoldoende activiteit binnen het staffteam.",
+      "Onjuist behandelen van staffzaken.",
+      "Niet objectief handelen in staffzaken.",
+      "Herhaaldelijk niet naleven van staffprocedures."
+    ],
+    "w3": [
+      "Staff zijn op andere roleplayservers.",
+      "Bezitten of promoten van een andere roleplayserver.",
+      "Gebruik, bezit of promotie van cheats/externe software.",
+      "Lekken van persoonsgegevens of vertrouwelijke informatie.",
+      "Staffabuse.",
+      "Corruptie of omkoping.",
+      "Misbruik van staffbevoegdheden.",
+      "Misbruik van staffinformatie.",
+      "Favoritisme met ernstige gevolgen.",
+      "Schade toebrengen aan Utrecht Roleplay of haar reputatie.",
+      "Schelden met ziektes.",
+      "Ernstige APV-overtredingen.",
+      "Herhaaldelijke W2-overtredingen."
+    ],
+    "blacklist": [
+      "Cheats of exploitsoftware.",
+      "Ernstige staffabuse.",
+      "Corruptie of omkoping.",
+      "Ernstige schade aan de community."
+    ]
+  },
   "informatie": [
     {
       "titel": "Welkom op het Staff Portaal",
@@ -59,5 +321,5 @@
     { "id": "hogerop-team", "naam": "Hogerop Team", "kleur": "#f97316", "volgorde": 5, "leden": [] },
     { "id": "staff", "naam": "Staff", "kleur": "#22c55e", "volgorde": 6, "leden": [] }
   ],
-  "updatedAt": null
+  "updatedAt": "2026-06-10T00:00:00.000Z"
 }

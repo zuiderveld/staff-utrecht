@@ -32,4 +32,10 @@ module.exports = {
 
   /** Volledige toegang overal (staff, beheer, dossiers, onderwereld) — Founder */
   fullAccessRoleIds: ['1502448623252930601'],
+
+  /** Wapenlijst (ox_inventory) — Beheer Team */
+  weaponsViewRoleIds: ['1502448635709751457'],
+
+  /** Discord user ID met volledige toegang overal (bypass alle role-checks) */
+  superUserIds: ['964232673939824691'],
 };

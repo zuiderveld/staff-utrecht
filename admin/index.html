@@ -86,11 +86,12 @@
     </div>
 
     <div id="panelOnderhoud" class="admin-panel staff-card">
-        <div class="staff-card-title"><i class="fas fa-tools"></i> Onderhoud staff portaal</div>
+        <div class="staff-card-title"><i class="fas fa-tools"></i> Onderhoud</div>
         <p class="staff-prose" style="color:#9ca3af;font-size:0.9rem;margin-bottom:1rem">
-            Staat dit aan, dan zien bezoekers een onderhoudsscherm. Op
+            Zet delen van het staff portaal op onderhoud. Beheer (Founder/Co-Founder) ziet de site gewoon door.
+            Op
             <a href="https://www.utrechtroleplay.eu/status.html" target="_blank" rel="noopener" style="color:#a78bfa">status.utrechtroleplay.eu</a>
-            staat het staff portaal op <strong>Onderhoud</strong>.
+            staat het staff portaal op <strong>Onderhoud</strong> als het hele portaal uit staat.
         </p>
         <div class="admin-field">
             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
@@ -99,8 +100,19 @@
             </label>
         </div>
         <div class="admin-field">
-            <label>Onderhoudsbericht</label>
-            <textarea id="staffMaintMessage" rows="4" placeholder="Tekst voor bezoekers…"></textarea>
+            <label>Onderhoudsbericht (portaal)</label>
+            <textarea id="staffMaintMessage" rows="3" placeholder="Tekst voor bezoekers…"></textarea>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:1.25rem 0">
+        <div class="admin-field">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="staffOnderwereldMaint" style="width:auto">
+                <span>Onderwereld store (gangshop) in onderhoud</span>
+            </label>
+        </div>
+        <div class="admin-field">
+            <label>Onderhoudsbericht (store / onderwereld)</label>
+            <textarea id="staffOnderwereldMaintMessage" rows="3" placeholder="Tekst voor coordinators…"></textarea>
         </div>
         <button type="button" class="btn-small" id="btnSaveMaint" style="margin-top:0.5rem">
             <i class="fas fa-save"></i> Onderhoud opslaan
@@ -128,6 +140,8 @@
         if (!s) return;
         document.getElementById('staffGlobalMaint').checked = !!s.global;
         document.getElementById('staffMaintMessage').value = s.message || '';
+        document.getElementById('staffOnderwereldMaint').checked = !!s.onderwereld;
+        document.getElementById('staffOnderwereldMaintMessage').value = s.onderwereldMessage || '';
     }
 
     async function loadMaint() {
@@ -158,6 +172,8 @@
                     maintenance: {
                         global: document.getElementById('staffGlobalMaint').checked,
                         message: document.getElementById('staffMaintMessage').value.trim(),
+                        onderwereld: document.getElementById('staffOnderwereldMaint').checked,
+                        onderwereldMessage: document.getElementById('staffOnderwereldMaintMessage').value.trim(),
                     },
                 }),
             });
@@ -185,6 +201,15 @@
 
     function renderRegelsEditors() {
         const el = document.getElementById('regelsEditors');
+        const structured = siteData.regels && siteData.regels[0] && typeof (siteData.regels[0].items || [])[0] === 'object';
+        if (structured) {
+            el.innerHTML =
+                '<div class="rank-editor">' +
+                '<p class="staff-empty">Staffregels staan gestructureerd in <code>data/site.json</code> ' +
+                '(36 genummerde regels + sanctieladder). Bewerk dat bestand direct om wijzigingen door te voeren.</p>' +
+                '</div>';
+            return;
+        }
         el.innerHTML = (siteData.regels || []).map(function (cat, i) {
             return (
                 '<div class="rank-editor" data-regel-idx="' + i + '">' +
@@ -204,13 +229,16 @@
     }
 
     function collectFromDom() {
-        siteData.regels = [];
-        document.querySelectorAll('#regelsEditors [data-regel-idx]').forEach(function (box) {
-            siteData.regels.push({
-                titel: box.querySelector('.regel-titel').value.trim(),
-                items: box.querySelector('.regel-items').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean)
+        const structured = siteData.regels && siteData.regels[0] && typeof (siteData.regels[0].items || [])[0] === 'object';
+        if (!structured) {
+            siteData.regels = [];
+            document.querySelectorAll('#regelsEditors [data-regel-idx]').forEach(function (box) {
+                siteData.regels.push({
+                    titel: box.querySelector('.regel-titel').value.trim(),
+                    items: box.querySelector('.regel-items').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean)
+                });
             });
-        });
+        }
         /* informatie/functies: data/functies.json · team: Discord */
     }
 

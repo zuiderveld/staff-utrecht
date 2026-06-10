@@ -1,5 +1,7 @@
 {
   "global": false,
+  "onderwereld": false,
   "message": "Het staff portaal is momenteel in onderhoud. Probeer het later opnieuw.",
+  "onderwereldMessage": "De onderwereld store (gangshop prijzen) is tijdelijk gesloten voor onderhoud. Probeer het later opnieuw.",
   "updatedAt": null
 }

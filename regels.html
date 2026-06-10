@@ -15,7 +15,7 @@
 <main class="staff-container">
     <div class="staff-hero">
         <h2>Staffregels <span>Utrecht Roleplay</span></h2>
-        <p>Algemene richtlijnen, sancties en extra regels</p>
+        <p>Algemene richtlijnen · sancties · professionaliteit · activiteit · bewijs · corruptie · extra regels</p>
     </div>
     <div class="staff-card">
         <div class="staff-card-title"><i class="fas fa-list"></i> Regels</div>
@@ -28,7 +28,7 @@
 <script>
     if (!requireLogin()) throw 0;
     mountHeader('regels');
-    fetchSite().then(function (s) { renderRegels(s.regels, document.getElementById('content')); });
+    fetchSite().then(function (s) { renderRegels(s, document.getElementById('content')); });
 </script>
 </body>
 </html>

@@ -8,6 +8,7 @@
     { "source": "/api/staff-team", "destination": "/api/router?route=staff-team" },
     { "source": "/api/discord-role-names", "destination": "/api/router?route=discord-role-names" },
     { "source": "/api/staff-dossiers", "destination": "/api/router?route=staff-dossiers" },
+    { "source": "/api/staff-weapons", "destination": "/api/router?route=staff-weapons" },
     { "source": "/api/maintenance", "destination": "/api/router?route=staff-maintenance" }
   ]
 }
